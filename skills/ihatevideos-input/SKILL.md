@@ -34,9 +34,25 @@ End-to-end Bilibili subtitle flow. Three CLI calls, zero Python needed:
 uv run ihatevideos-input cookies --check
 # state: ok -> go to step 3. otherwise -> step 2.
 uv run ihatevideos-input cookies --file <pasted-file>
-uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>
-# exit 0 -> text_path + items_path ready. exit 3 -> no native subtitle, go to ASR.
+uv run ihatevideos-input subtitle <bilibili-url> --out-dir temp
+# exit 0 -> session_dir + text_path + items_path ready. exit 3 -> no native subtitle, go to ASR.
 ```
+
+## Output paths (intermediate artifacts)
+
+`subtitle` never drops loose files. `--out-dir` defaults to the project
+`temp/` (git-ignored). Each call creates one session dir per video:
+
+```
+temp/2026-09-19-<标题50字>-<BV号>/BV号_sub.txt
+temp/2026-09-19-<标题50字>-<BV号>/BV号_sub_items.json
+```
+
+Rules: date is the video publish date, fetch date when unavailable;
+title is filename-sanitized; BV号 suffix stays for traceability; an
+existing dir gets `_<n>` instead of being overwritten. Downstream steps
+(transcribe, split, summarize) receive `session_dir` and read/write inside
+it. JSON field `session_dir` is the handoff handle — pass it on verbatim.
 
 Python (only when the orchestrator needs objects instead of files):
 

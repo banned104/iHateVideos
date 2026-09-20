@@ -5,6 +5,11 @@ One import surface for the Agent:
     from ihatevideos.input import resolve_input, detect_platform, Platform
 """
 
+from .artifacts import (
+    prepare_session_dir,
+    session_dir_name,
+    subtitle_artifact_paths,
+)
 from .bilibili_ids import (
     extract_bilibili_page,
     extract_bilibili_target_id,
@@ -54,8 +59,11 @@ __all__ = [
     "import_bilibili_cookies",
     "load_bilibili_cookies",
     "normalize_bilibili_target",
+    "prepare_session_dir",
     "resolve_input",
     "resolve_ximalaya_sound_url",
     "build_transcription_artifact_name",
     "sanitize_filename_component",
+    "session_dir_name",
+    "subtitle_artifact_paths",
 ]

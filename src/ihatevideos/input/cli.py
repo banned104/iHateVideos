@@ -130,23 +130,34 @@ def _cmd_cookies(args: argparse.Namespace) -> int:
 
 
 def _cmd_subtitle(args: argparse.Namespace) -> int:
+    from .artifacts import prepare_session_dir, subtitle_artifact_paths
+    from .metadata import get_video_metadata
+
     subtitle = fetch_bilibili_subtitle(args.target, timeout_seconds=args.timeout)
     if subtitle is None:
         _print_json(
             {
                 "command": "subtitle",
                 "target": args.target,
+                "session_dir": None,
                 "text_path": None,
                 "items_path": None,
                 "skipped": "no native subtitle (go to ASR)",
             }
         )
         return 3
-    out_dir = Path(args.out_dir).expanduser()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    stem = extract_bvid(args.target) or "subtitle"
-    text_path = out_dir / f"{stem}_sub.txt"
-    items_path = out_dir / f"{stem}_sub_items.json"
+    bvid = extract_bvid(args.target) or "subtitle"
+    title, pubdate = "", ""
+    try:
+        metadata = get_video_metadata(bvid) if bvid != "subtitle" else None
+    except Exception:  # noqa: BLE001
+        metadata = None
+    if metadata is not None:
+        title, pubdate = metadata.title, metadata.pubdate
+    session_dir = prepare_session_dir(
+        args.out_dir, title=title or bvid, pubdate=pubdate, bvid=bvid
+    )
+    text_path, items_path = subtitle_artifact_paths(session_dir, bvid)
     text_path.write_text(subtitle.text, encoding="utf-8")
     items_path.write_text(
         json.dumps(
@@ -163,6 +174,7 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
         {
             "command": "subtitle",
             "target": args.target,
+            "session_dir": str(session_dir),
             "text_path": str(text_path),
             "items_path": str(items_path),
             "cues": len(subtitle.items),
@@ -223,7 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
         "subtitle", help="Fetch Bilibili native subtitle and write text + items files."
     )
     p_sub.add_argument("target")
-    p_sub.add_argument("--out-dir", default=".")
+    p_sub.add_argument("--out-dir", default="temp", help="session root (default temp/)")
     p_sub.add_argument("--timeout", type=int, default=60)
     p_sub.set_defaults(func=_cmd_subtitle)
 
