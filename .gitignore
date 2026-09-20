@@ -24,6 +24,7 @@ htmlcov/
 # Secrets and local config (never commit keys)
 .env
 .env.*
+config.toml
 *.pem
 *.key
 

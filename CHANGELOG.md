@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.2.0 — 2026-09-21
+
+- 有监督 Agent：终端启动，登录态预检，写 temp 外当场审批（`ihatevideos-agent`）。
+- 模型配置：根目录 `config.toml`（`config.example.toml` 为模板，真实值不提交）。
+
 ## 0.1.3 — 2026-09-21
 
 - 评论默认 10 条主评论、每条子评论最多 10 条（`--reply-limit` 可调）。
