@@ -36,6 +36,9 @@ uv run ihatevideos-input cookies --check
 uv run ihatevideos-input cookies --file <pasted-file>
 uv run ihatevideos-input subtitle <bilibili-url> --out-dir temp
 # exit 0 -> session_dir + text_path + items_path ready. exit 3 -> no native subtitle, go to ASR.
+uv run ihatevideos-input comments <bilibili-url> --limit 10 --reply-limit 10 --session-dir <session_dir>
+# optional step, Bilibili only. exit 0 -> comments_json + comments_markdown ready.
+# exit 1 -> continue without comments, never block the workflow.
 ```
 
 ## Output paths (intermediate artifacts)
@@ -46,6 +49,9 @@ uv run ihatevideos-input subtitle <bilibili-url> --out-dir temp
 ```
 temp/2026-09-19-<标题50字>-<BV号>/BV号_sub.txt
 temp/2026-09-19-<标题50字>-<BV号>/BV号_sub_items.json
+temp/2026-09-19-<标题50字>-<BV号>/BV号_meta.json
+temp/2026-09-19-<标题50字>-<BV号>/BV号_comments.json
+temp/2026-09-19-<标题50字>-<BV号>/BV号_comments.md
 ```
 
 Rules: date is the video publish date, fetch date when unavailable;
@@ -120,6 +126,15 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
    `cookies --file` on it, re-run `--check`). Never ask
    the user to paste the SESSDATA value into chat; secrets stay in local
    files. After a successful import, retry the subtitle fetch once.
+8. **Comments are optional and Bilibili-only.** Fetch them only when the
+   orchestrator needs audience viewpoints (`comments --limit 10
+   --reply-limit 10`: 10 hot top-level comments, each with up to 10 child
+   replies, UP author marked). Large pulls (`--limit N`, `--all`) need an
+   explicit orchestrator demand — never default to them. Non-BV targets
+   exit 2 (skip, not an error); fetch failure exits 1 (continue without
+   comments, never block transcription or summary). `meta.json`
+   (title/author/pubdate/description) lands beside the subtitle files
+   whenever metadata succeeds.
 
 ## Output back to the orchestrator
 

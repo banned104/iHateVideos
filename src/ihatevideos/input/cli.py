@@ -130,7 +130,11 @@ def _cmd_cookies(args: argparse.Namespace) -> int:
 
 
 def _cmd_subtitle(args: argparse.Namespace) -> int:
-    from .artifacts import prepare_session_dir, subtitle_artifact_paths
+    from .artifacts import (
+        prepare_session_dir,
+        subtitle_artifact_paths,
+        write_meta_json,
+    )
     from .metadata import get_video_metadata
 
     subtitle = fetch_bilibili_subtitle(args.target, timeout_seconds=args.timeout)
@@ -158,6 +162,7 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
         args.out_dir, title=title or bvid, pubdate=pubdate, bvid=bvid
     )
     text_path, items_path = subtitle_artifact_paths(session_dir, bvid)
+    meta_path = write_meta_json(session_dir, bvid, metadata) if metadata is not None else None
     text_path.write_text(subtitle.text, encoding="utf-8")
     items_path.write_text(
         json.dumps(
@@ -177,8 +182,81 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
             "session_dir": str(session_dir),
             "text_path": str(text_path),
             "items_path": str(items_path),
+            "meta_path": str(meta_path) if meta_path is not None else None,
             "cues": len(subtitle.items),
             "chars": len(subtitle.text),
+            "skipped": None,
+        }
+    )
+    return 0
+
+
+def _cmd_comments(args: argparse.Namespace) -> int:
+    from .artifacts import (
+        comment_artifact_paths,
+        prepare_session_dir,
+        write_meta_json,
+    )
+    from .comments import (
+        count_comment_replies,
+        count_up_replies,
+        fetch_comments_with_login,
+        write_comments_json,
+        write_comments_markdown,
+    )
+    from .metadata import get_video_metadata
+
+    bvid = extract_bvid(args.target)
+    if bvid is None:
+        print("error: comments support Bilibili BV targets only", file=sys.stderr)
+        return 2
+    try:
+        metadata = get_video_metadata(bvid)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: metadata fetch failed: {exc}", file=sys.stderr)
+        return 1
+    if metadata.aid <= 0:
+        print("error: metadata has no aid, comments unavailable", file=sys.stderr)
+        return 1
+    if args.session_dir:
+        session_dir = Path(args.session_dir).expanduser()
+        session_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        session_dir = prepare_session_dir(
+            args.out_dir,
+            title=metadata.title or bvid,
+            pubdate=metadata.pubdate,
+            bvid=bvid,
+        )
+        write_meta_json(session_dir, bvid, metadata)
+    limit = None if args.all else args.limit
+    try:
+        bundle = fetch_comments_with_login(
+            aid=metadata.aid,
+            bvid=bvid,
+            up_uid=metadata.author_uid,
+            limit=limit,
+            sort=args.sort,
+            reply_limit=args.reply_limit,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: comments fetch failed: {exc}", file=sys.stderr)
+        return 1
+    json_path, md_path = comment_artifact_paths(session_dir, bvid)
+    write_comments_json(bundle, json_path)
+    write_comments_markdown(bundle, md_path)
+    _print_json(
+        {
+            "command": "comments",
+            "target": args.target,
+            "session_dir": str(session_dir),
+            "comments_json": str(json_path),
+            "comments_markdown": str(md_path),
+            "fetched": bundle.fetched_count,
+            "replies": count_comment_replies(bundle),
+            "up_replies": count_up_replies(bundle),
+            "total": bundle.total_count,
+            "source": bundle.source,
             "skipped": None,
         }
     )
@@ -238,6 +316,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_sub.add_argument("--out-dir", default="temp", help="session root (default temp/)")
     p_sub.add_argument("--timeout", type=int, default=60)
     p_sub.set_defaults(func=_cmd_subtitle)
+
+    p_comments = sub.add_parser(
+        "comments", help="Fetch Bilibili hot comments + all child replies (Bilibili only)."
+    )
+    p_comments.add_argument("target")
+    p_comments.add_argument("--limit", type=int, default=10)
+    p_comments.add_argument("--reply-limit", type=int, default=10)
+    p_comments.add_argument("--all", action="store_true")
+    p_comments.add_argument("--sort", default="hot")
+    p_comments.add_argument("--out-dir", default="temp", help="session root (default temp/)")
+    p_comments.add_argument("--session-dir", default=None)
+    p_comments.set_defaults(func=_cmd_comments)
 
     return parser
 

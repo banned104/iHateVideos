@@ -1,6 +1,8 @@
+import json
 import re
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from .platform import sanitize_filename_component
 
@@ -35,3 +37,34 @@ def prepare_session_dir(
 def subtitle_artifact_paths(session_dir: Path | str, stem: str) -> tuple[Path, Path]:
     directory = Path(session_dir)
     return directory / f"{stem}_sub.txt", directory / f"{stem}_sub_items.json"
+
+
+def comment_artifact_paths(session_dir: Path | str, stem: str) -> tuple[Path, Path]:
+    directory = Path(session_dir)
+    return directory / f"{stem}_comments.json", directory / f"{stem}_comments.md"
+
+
+def write_meta_json(
+    session_dir: Path | str, stem: str, metadata: Any
+) -> Path:
+    # 简介随元数据写文件：标题/作者/时间/简介/分区/时长
+    path = Path(session_dir) / f"{stem}_meta.json"
+    path.write_text(
+        json.dumps(
+            {
+                "bvid": getattr(metadata, "bvid", ""),
+                "title": getattr(metadata, "title", ""),
+                "author": getattr(metadata, "author", ""),
+                "author_uid": getattr(metadata, "author_uid", 0),
+                "pubdate": getattr(metadata, "pubdate", ""),
+                "description": getattr(metadata, "description", ""),
+                "aid": getattr(metadata, "aid", 0),
+                "tid": getattr(metadata, "tid", 0),
+                "duration_seconds": getattr(metadata, "duration_seconds", 0),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return path

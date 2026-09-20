@@ -49,8 +49,7 @@ def load_bilibili_cookies(cookies_file: Path | str) -> dict[str, str]:
     return found
 
 
-def import_bilibili_cookies(cookies_file: Path | str | None = None) -> Path:
-    # 与 video-knowledge-agent 同约定：默认读 BILIBILI_COOKIES_FILE
+def import_bilibili_cookies(cookies_file: Path | str | None = None) -> Path:    # 与 video-knowledge-agent 同约定：默认读 BILIBILI_COOKIES_FILE
     if cookies_file is None:
         configured = os.environ.get(BILIBILI_COOKIES_FILE_ENV, "").strip()
         if not configured:
@@ -68,3 +67,17 @@ def import_bilibili_cookies(cookies_file: Path | str | None = None) -> Path:
         )
     )
     return CREDENTIAL_FILE
+
+
+def bilibili_cookie_string() -> str:
+    # 给评论接口用的 Cookie 头：有登录态就带上，没有就匿名，调用方不中断
+    try:
+        data = json.loads(CREDENTIAL_FILE.read_text())
+    except (json.JSONDecodeError, OSError):
+        return ""
+    parts = []
+    if data.get("sessdata"):
+        parts.append(f"SESSDATA={data['sessdata']}")
+    if data.get("bili_jct"):
+        parts.append(f"bili_jct={data['bili_jct']}")
+    return "; ".join(parts)
