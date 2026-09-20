@@ -1,0 +1,23 @@
+[project]
+name = "ihatevideos"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Banned104", email = "1286253605@qq.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "bilibili-cli>=0.6.2",
+    "httpx>=0.28.1",
+    "requests>=2.34.2",
+    "yutto==2.1.1",
+]
+
+[project.scripts]
+ihatevideos = "ihatevideos:main"
+ihatevideos-input = "ihatevideos.input.cli:main"
+ihatevideos-export = "ihatevideos.export.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"

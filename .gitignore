@@ -1,0 +1,60 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*$py.class
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Secrets and local config (never commit keys)
+.env
+.env.*
+*.pem
+*.key
+
+# Runtime data (local runs only: history DB, vector store, downloads)
+data/
+*.db
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.chroma/
+chroma_db/
+work/
+outputs/
+exports/
+uploads/
+
+# Logs and temp
+*.log
+tmp/
+temp/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local agent skills (tool-managed, not project source)
+.agents/
+
+# .agents
+.agents
