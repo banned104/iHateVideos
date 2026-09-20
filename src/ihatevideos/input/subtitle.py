@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -64,12 +65,17 @@ def fetch_bilibili_subtitle(
         "--subtitle-timeline",
         "--json",
     ]
+    # bili 在 GBK 控制台下输出含宽字符的标题会直接崩溃：强制子进程 UTF-8
+    env = dict(os.environ)
+    env.setdefault("PYTHONUTF8", "1")
     try:
         result = subprocess.run(
             cmd,
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            env=env,
             timeout=timeout_seconds,
         )
     except FileNotFoundError:

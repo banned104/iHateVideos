@@ -11,6 +11,12 @@ from .bilibili_ids import (
     extract_bvid,
     normalize_bilibili_target,
 )
+from .cookies import (
+    BILIBILI_COOKIES_FILE_ENV,
+    credential_status,
+    import_bilibili_cookies,
+    load_bilibili_cookies,
+)
 from .metadata import VideoMetadata, get_video_metadata, get_video_metadata_async
 from .platform import (
     Platform,
@@ -26,6 +32,7 @@ from .xiaoyuzhou import XiaoyuzhouDownloader, fetch_xiaoyuzhou_metadata
 from .ximalaya import XimalayaDownloader, resolve_ximalaya_sound_url
 
 __all__ = [
+    "BILIBILI_COOKIES_FILE_ENV",
     "BilibiliSubtitle",
     "Platform",
     "PlatformDownloader",
@@ -34,6 +41,7 @@ __all__ = [
     "VideoMetadata",
     "XiaoyuzhouDownloader",
     "XimalayaDownloader",
+    "credential_status",
     "detect_platform",
     "extract_bilibili_page",
     "extract_bilibili_target_id",
@@ -43,6 +51,8 @@ __all__ = [
     "fetch_xiaoyuzhou_metadata",
     "get_video_metadata",
     "get_video_metadata_async",
+    "import_bilibili_cookies",
+    "load_bilibili_cookies",
     "normalize_bilibili_target",
     "resolve_input",
     "resolve_ximalaya_sound_url",

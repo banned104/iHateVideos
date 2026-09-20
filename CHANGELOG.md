@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.1.1 — 2026-09-21
+
+- B 站登录态：浏览器 Cookie 导入与状态检查（`cookies --file/--check`），只走 Cookie，不做扫码登录。
+- 字幕落文件：`subtitle` 命令直出文本与时间轴 JSON，`input` Skill 给出三步端到端流程。
+- 修复 GBK 控制台下 `bili` 输出宽字符崩死导致字幕误判缺失。
+
 ## 0.1.0 — 2026-09-20
 
 - 多平台输入：B 站（含原生字幕优先）/小宇宙/喜马拉雅/本地文件统一接入（`ihatevideos-input`）。

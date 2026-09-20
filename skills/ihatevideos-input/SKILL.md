@@ -28,6 +28,18 @@ This skill belongs to the `iHateVideos` uv project (sibling of
 
 ## API (use exactly this)
 
+End-to-end Bilibili subtitle flow. Three CLI calls, zero Python needed:
+
+```bash
+uv run ihatevideos-input cookies --check
+# state: ok -> go to step 3. otherwise -> step 2.
+uv run ihatevideos-input cookies --file <pasted-file>
+uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>
+# exit 0 -> text_path + items_path ready. exit 3 -> no native subtitle, go to ASR.
+```
+
+Python (only when the orchestrator needs objects instead of files):
+
 ```python
 from ihatevideos.input import resolve_input
 
@@ -61,6 +73,10 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 - `resolve_ximalaya_sound_url(url) -> (canonical_url, track_id)`
 - `fetch_bilibili_subtitle(target) -> BilibiliSubtitle | None`
 - `build_transcription_artifact_name(name, resource_id)`
+- `import_bilibili_cookies(path | None) -> Path` — read SESSDATA from a
+  browser-exported Netscape `cookies.txt` (or `BILIBILI_COOKIES_FILE` env)
+  into the credential file `bili` reads; call it when subtitle fetch fails
+  with empty sessdata instead of asking the user to QR-scan
 
 ## Rules (why they exist)
 
@@ -80,6 +96,14 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 6. **Errors are typed:** `ValueError` = bad/unsupported input (ask user for a
    new link); `FileNotFoundError` = missing local file or zero downloads;
    `RuntimeError` = platform API failure (retry once, then report).
+7. **Bilibili login state first.** Before any Bilibili subtitle fetch, run
+   `uv run ihatevideos-input cookies --check`. `state: ok` means proceed.
+   `missing / empty / stale / broken` means stop and prompt the user with
+   the exact 3 steps from the project README (paste the browser-exported
+   file into `temp/` under any name and tell you the filename, run
+   `cookies --file` on it, re-run `--check`). Never ask
+   the user to paste the SESSDATA value into chat; secrets stay in local
+   files. After a successful import, retry the subtitle fetch once.
 
 ## Output back to the orchestrator
 
@@ -110,6 +134,9 @@ uv run ihatevideos-input ids <bilibili-input>  # offline: bvid/page/target_id/no
 uv run ihatevideos-input ximalaya <url>        # offline for direct sound links
 uv run ihatevideos-input resolve --url <url> --download-dir ./work        # may download
 uv run ihatevideos-input resolve --audio-path uploads/BV1xx411c7mD_x.m4a  # local, offline
+uv run ihatevideos-input cookies --file cookies.txt  # import login state, no QR needed
+uv run ihatevideos-input cookies --check  # ok / missing / empty / stale / broken
+uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text + items files
 ```
 
 `resolve` prints the Skill contract as JSON
@@ -118,6 +145,7 @@ uv run ihatevideos-input resolve --audio-path uploads/BV1xx411c7mD_x.m4a  # loca
 
 ## Test prompts for this skill
 
-1. "把这个 B站链接接进来：`https://www.bilibili.com/video/BV1xx411c7mD?p=2`，告诉我有没有原生字幕、音频在哪、resource_id 是什么。"
-2. "用户传了一个文件 `uploads/BV1xx411c7mD_访谈.m4a`，按本地输入走，不要联网。"
-3. "这个能接吗：`https://www.ximalaya.com/album/12345`？不能的话说明原因并索要单集链接。"
+1. "B站字幕端到端：先 `--check`，坏了就导入用户粘的文件，再 `subtitle` 落文件，报三条路径。"
+2. "把这个 B站链接接进来：`https://www.bilibili.com/video/BV1xx411c7mD?p=2`，告诉我有没有原生字幕、音频在哪、resource_id 是什么。"
+3. "用户传了一个文件 `uploads/BV1xx411c7mD_访谈.m4a`，按本地输入走，不要联网。"
+4. "这个能接吗：`https://www.ximalaya.com/album/12345`？不能的话说明原因并索要单集链接。"

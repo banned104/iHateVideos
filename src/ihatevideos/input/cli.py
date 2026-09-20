@@ -7,11 +7,15 @@ Independent entry point (no Agent needed)::
     ihatevideos-input ids <input>
     ihatevideos-input ximalaya <url>
     ihatevideos-input resolve (--url URL | --audio-path PATH) [options]
+    ihatevideos-input cookies [--file cookies.txt]
+    ihatevideos-input subtitle <bilibili-target> [--out-dir DIR]
 
 ``resolve`` is the same contract the Skill uses: exactly one input in,
 ``ResolvedInput`` out, printed as JSON on stdout. Anything that downloads
 audio or hits the network happens only in ``resolve`` (and Bilibili subtitle
 probe inside it); the other subcommands are pure offline parsing.
+``cookies`` imports SESSDATA from a browser-exported Netscape cookies.txt
+into the credential file ``bili`` reads, no QR scan needed.
 """
 
 from __future__ import annotations
@@ -28,7 +32,9 @@ from .bilibili_ids import (
     extract_bvid,
     normalize_bilibili_target,
 )
+from .cookies import credential_status, import_bilibili_cookies
 from .resolver import resolve_input
+from .subtitle import fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .ximalaya import resolve_ximalaya_sound_url
 
@@ -107,6 +113,66 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_cookies(args: argparse.Namespace) -> int:
+    if args.check:
+        _print_json({"command": "cookies", **credential_status()})
+        return 0
+    try:
+        dest = import_bilibili_cookies(args.file)
+    except FileNotFoundError as exc:
+        print(f"error: file not found: {exc}", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        print(f"error: bad input: {exc}", file=sys.stderr)
+        return 2
+    _print_json({"command": "cookies", "saved_to": str(dest)})
+    return 0
+
+
+def _cmd_subtitle(args: argparse.Namespace) -> int:
+    subtitle = fetch_bilibili_subtitle(args.target, timeout_seconds=args.timeout)
+    if subtitle is None:
+        _print_json(
+            {
+                "command": "subtitle",
+                "target": args.target,
+                "text_path": None,
+                "items_path": None,
+                "skipped": "no native subtitle (go to ASR)",
+            }
+        )
+        return 3
+    out_dir = Path(args.out_dir).expanduser()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stem = extract_bvid(args.target) or "subtitle"
+    text_path = out_dir / f"{stem}_sub.txt"
+    items_path = out_dir / f"{stem}_sub_items.json"
+    text_path.write_text(subtitle.text, encoding="utf-8")
+    items_path.write_text(
+        json.dumps(
+            [
+                {"start_ms": item.start_ms, "end_ms": item.end_ms, "text": item.text}
+                for item in subtitle.items
+            ],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    _print_json(
+        {
+            "command": "subtitle",
+            "target": args.target,
+            "text_path": str(text_path),
+            "items_path": str(items_path),
+            "cues": len(subtitle.items),
+            "chars": len(subtitle.text),
+            "skipped": None,
+        }
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ihatevideos-input",
@@ -145,6 +211,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_resolve.add_argument("--no-metadata", action="store_true")
     p_resolve.add_argument("--subtitle-timeout", type=int, default=60)
     p_resolve.set_defaults(func=_cmd_resolve)
+
+    p_cookies = sub.add_parser(
+        "cookies", help="Import SESSDATA from a browser cookies.txt (else BILIBILI_COOKIES_FILE)."
+    )
+    p_cookies.add_argument("--file", default=None)
+    p_cookies.add_argument("--check", action="store_true")
+    p_cookies.set_defaults(func=_cmd_cookies)
+
+    p_sub = sub.add_parser(
+        "subtitle", help="Fetch Bilibili native subtitle and write text + items files."
+    )
+    p_sub.add_argument("target")
+    p_sub.add_argument("--out-dir", default=".")
+    p_sub.add_argument("--timeout", type=int, default=60)
+    p_sub.set_defaults(func=_cmd_subtitle)
 
     return parser
 
