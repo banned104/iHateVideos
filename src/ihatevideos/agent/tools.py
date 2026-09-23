@@ -10,6 +10,7 @@ ALLOWED_COMMANDS = {
         "cookies", "subtitle", "comments",
     },
     "ihatevideos-export": {"json2md", "table", "timeline"},
+    "ihatevideos-media": {"probe", "frames", "clip", "audio"},
 }
 OUTPUT_CAP = 20000
 
@@ -26,8 +27,8 @@ def build_tools(root: Path, temp_dir: Path) -> list:
 
     @tool
     def run_cli(command: str, arguments: list[str]) -> str:
-        """Run a project CLI. command is ihatevideos-input or ihatevideos-export,
-        arguments starts with the subcommand plus its flags."""
+        """Run a project CLI. Allowed commands: ihatevideos-input, ihatevideos-export,
+        ihatevideos-media. arguments starts with the subcommand plus its flags."""
         if command not in ALLOWED_COMMANDS:
             return f"error: command {command}不在白名单"
         if not arguments or arguments[0] not in ALLOWED_COMMANDS[command]:
@@ -41,7 +42,7 @@ def build_tools(root: Path, temp_dir: Path) -> list:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=300,
+                timeout=600,
                 cwd=str(resolved_root),
             )
         except FileNotFoundError:

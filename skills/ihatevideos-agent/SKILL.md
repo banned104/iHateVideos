@@ -37,8 +37,9 @@ Session flow, in order:
 1. Bilibili tasks run a login preflight. State not ok stops the session
    and prints 3 steps: export browser cookies to `temp/config/`, press
    Enter, auto import plus recheck. Key never enters chat.
-2. Agent loop: `run_cli` (project CLI whitelist), `read_file` (project,
-   temp, external readable), `write_file` (`temp/` direct).
+2. Agent loop: `run_cli` (whitelist: `ihatevideos-input`, `ihatevideos-export`,
+   `ihatevideos-media`), `read_file` (project, temp, external readable),
+   `write_file` (`temp/` direct).
 3. Writes outside `temp/` pause with a terminal y/n prompt. `y` approves,
    anything else rejects with a retry hint.
 4. Session ends printing one JSON: `session_dir`, `artifacts`, `status`,

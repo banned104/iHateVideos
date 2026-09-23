@@ -7,8 +7,9 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 - `src/ihatevideos/input/`：多平台输入。B 站（含原生字幕优先）/小宇宙/喜马拉雅/本地文件，统一输出音频路径、元数据、资源编号。
 - `src/ihatevideos/export/`：内容导出。转录 JSON 转原文 Markdown，总结转干净表格与 B 站时间线。
 - `src/ihatevideos/summarize/`：LLM 总结。转录转总结 Markdown，评论转观点追加，与 Agent 共用根目录模型配置。
+- `src/ihatevideos/media/`：本地音视频处理。ffprobe 读流信息与时长，ffmpeg 取画面、剪切视频与音频、提取音轨与分块（`ihatevideos-media`）。
 - `src/ihatevideos/agent/`：有监督 Agent（LangChain）。终端启动，按流程调用上面两个模块，写 temp 外暂停审批。
-- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`、`ihatevideos-summarize`）。
+- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`、`ihatevideos-summarize`、`ihatevideos-media`）。
 - `.agents/skills/`：通用工具 Skills，只存本地，不提交。
 - `temp/`：中间结果、Cookie 文件，只存本地，不提交。
 
@@ -18,6 +19,7 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 uv sync
 uv run ihatevideos-input detect "BV1xx411c7mD"
 uv run ihatevideos-export --help
+uv run ihatevideos-media probe "temp/media/<某个视频文件>"
 ```
 
 ## Agent
@@ -40,7 +42,7 @@ B 站字幕接口只对登录态返回。导入一次，7 天内有效：
 
 ## Skills
 
-Agent 开发看各 Skill 目录下的 `SKILL.md`。大 Skill 按流程调用小 Skill：输入接入、转录、导出。
+Agent 开发看各 Skill 目录下的 `SKILL.md`。大 Skill 按流程调用小 Skill：输入接入、媒体处理、转录、导出。
 
 ## 提交规则
 
