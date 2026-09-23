@@ -1,6 +1,6 @@
 [project]
 name = "ihatevideos"
-version = "0.2.0"
+version = "0.3.0"
 description = "Add your description here"
 authors = [
     { name = "Banned104", email = "1286253605@qq.com" }
@@ -20,6 +20,7 @@ ihatevideos = "ihatevideos:main"
 ihatevideos-input = "ihatevideos.input.cli:main"
 ihatevideos-export = "ihatevideos.export.cli:main"
 ihatevideos-agent = "ihatevideos.agent.cli:main"
+ihatevideos-summarize = "ihatevideos.summarize.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]

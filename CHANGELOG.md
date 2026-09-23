@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.0 — 2026-09-21
+
+- LLM 总结模块（`ihatevideos-summarize`）：转录 Markdown 转总结，评论 Markdown 的观点追加到总结末尾，内置金融时间线、通用总结、学习笔记、投资播客四个预设。
+
 ## 0.2.0 — 2026-09-21
 
 - 有监督 Agent：终端启动，登录态预检，写 temp 外当场审批（`ihatevideos-agent`）。

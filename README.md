@@ -6,8 +6,9 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 
 - `src/ihatevideos/input/`：多平台输入。B 站（含原生字幕优先）/小宇宙/喜马拉雅/本地文件，统一输出音频路径、元数据、资源编号。
 - `src/ihatevideos/export/`：内容导出。转录 JSON 转原文 Markdown，总结转干净表格与 B 站时间线。
+- `src/ihatevideos/summarize/`：LLM 总结。转录转总结 Markdown，评论转观点追加，与 Agent 共用根目录模型配置。
 - `src/ihatevideos/agent/`：有监督 Agent（LangChain）。终端启动，按流程调用上面两个模块，写 temp 外暂停审批。
-- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`）。
+- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`、`ihatevideos-summarize`）。
 - `.agents/skills/`：通用工具 Skills，只存本地，不提交。
 - `temp/`：中间结果、Cookie 文件，只存本地，不提交。
 
