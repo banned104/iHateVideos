@@ -1,17 +1,21 @@
 [project]
 name = "ihatevideos"
-version = "0.3.0"
+version = "0.4.0"
 description = "Add your description here"
 authors = [
     { name = "Banned104", email = "1286253605@qq.com" }
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "aria2>=0.0.1b0",
+    "aria2p>=0.12.1",
     "bilibili-cli>=0.6.2",
     "httpx>=0.28.1",
+    "imageio-ffmpeg>=0.6.0",
     "langchain>=1.4.2",
     "langchain-openai>=1.6.2",
     "requests>=2.34.2",
+    "yt-dlp>=2026.8.19",
     "yutto==2.1.1",
 ]
 
@@ -22,7 +26,13 @@ ihatevideos-export = "ihatevideos.export.cli:main"
 ihatevideos-agent = "ihatevideos.agent.cli:main"
 ihatevideos-summarize = "ihatevideos.summarize.cli:main"
 ihatevideos-media = "ihatevideos.media.cli:main"
+ihatevideos-download = "ihatevideos.download.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

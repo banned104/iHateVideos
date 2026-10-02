@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.4.0 — 2026-10-02
+
+- 下载模块（`src/ihatevideos/download/`）与命令行 `ihatevideos-download`：aria2c 直链下载（多线程分段、断点续传、限速、崩溃退避重启），yt-dlp 视频下载（信息树解析、格式与字幕清单、清晰度短标、合流、抽音频、经 aria2c 加速与失败回退）。任务记录里的 `format_id` 是 yt-dlp 实际选中的格式，yt-dlp 关于「哪些格式拿不到」（例如需要大会员）的提示原样透出。
+- 依赖一条命令装齐 aria2c、ffmpeg、yt-dlp；`setup-binaries` 把 uv 取不到的 ffprobe 取回项目内的 `temp/bin/`，只写项目目录，不改系统任何位置。
+- 下载子进程跟随系统代理，`--no-proxy` 可显式直连。
+- Agent 的命令白名单增加 `ihatevideos-download` 的五个子命令。
+
 ## 0.3.0 — 2026-09-21
 
 - LLM 总结模块（`ihatevideos-summarize`）：转录 Markdown 转总结，评论 Markdown 的观点追加到总结末尾，内置金融时间线、通用总结、学习笔记、投资播客四个预设。
