@@ -1,0 +1,2 @@
+class SummarizeError(RuntimeError):
+    pass

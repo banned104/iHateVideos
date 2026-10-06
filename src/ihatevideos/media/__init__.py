@@ -13,7 +13,7 @@ from .ffmpeg import (
     resolve_ffprobe,
     run_ffmpeg,
 )
-from .frames import FrameResult, build_timestamps, extract_frames
+from .frames import FrameResult, build_timestamps, capture_frames, extract_frames
 from .paths import (
     audio_dir,
     chunk_dir,
@@ -46,6 +46,7 @@ __all__ = [
     "VideoStreamInfo",
     "audio_dir",
     "build_timestamps",
+    "capture_frames",
     "chunk_audio",
     "chunk_dir",
     "clip_path",

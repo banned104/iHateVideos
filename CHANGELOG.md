@@ -1,5 +1,14 @@
 # CHANGELOG
 
+
+## 0.7.0 — 2026-10-08
+
+- 重建图文笔记模块（`src/ihatevideos/summarize/`）与命令行 `ihatevideos-summarize`：`templates` 列出写作模板，`template` 打印模板正文，`frames` 按 Markdown 里的画面占位符取帧到笔记同级的 `assets/`，`insert` 把占位符换成图片引用。
+- 占位符写成 `<!-- FRAME: MM:SS | 图注 -->`，时间点直接从正文里读，不用另外手写；同一个时间点重复出现只取一张图。取不到画面的占位符原样保留并记进 `missing`，部分失败时退出码为 `3`。
+- 图片名是 `<笔记文件名>-<MMSS>s.jpg`，引用用相对路径加正斜杠，整个笔记文件夹可以直接搬进 Obsidian。
+- 模板放工程根目录 `templates/`，随仓库提交三套：教学视频笔记、播客、会议；往该目录加 `.md` 就多一套。
+- `media/frames.py` 抽出 `capture_frames(source, targets, ...)`，目标路径由调用方决定，`extract_frames` 改为调它。笔记模块复用它与 `media` 的 ffmpeg 封装。
+- 本模块不加载任何模型、不联网，正文由调用它的 Agent 写。
 ## 0.6.0 — 2026-10-07
 
 - 移除有监督 Agent（`ihatevideos-agent`）与对应 Skill。它做的事手动敲命令都能做到，模块没有测试，且需要工程根目录的 `config.toml`，开箱状态下启动即退出码 2。

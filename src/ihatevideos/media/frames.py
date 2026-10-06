@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .ffmpeg import DEFAULT_TIMEOUT_SECONDS, FfmpegError, base_arguments, run_ffmpeg
-from .paths import ensure_dir, frame_path, frames_dir, parameter_signature
+from .paths import frame_path, parameter_signature
 from .timestamps import format_timestamp
 
 SUPPORTED_FORMATS = ("jpg", "png")
@@ -81,11 +81,10 @@ def build_timestamps(
     return points
 
 
-def extract_frames(
+def capture_frames(
     source: Path | str,
-    timestamps: Sequence[float],
+    targets: Sequence[tuple[float, Path]],
     *,
-    out_dir: Path | str,
     fmt: str = "jpg",
     width: int | None = None,
     quality: int = DEFAULT_QUALITY,
@@ -93,6 +92,11 @@ def extract_frames(
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     reuse: bool = False,
 ) -> tuple[list[FrameResult], list[dict[str, Any]]]:
+    """按调用方给定的时间点与目标路径取帧
+
+    targets 是 (秒数, 目标文件路径) 的序列，目录与文件名都由调用方决定；
+    并发、复用与失败收集在这里统一处理。
+    """
     if fmt not in SUPPORTED_FORMATS:
         raise ValueError(f"画面格式只能是 {' 或 '.join(SUPPORTED_FORMATS)}：{fmt}")
     if fmt == "jpg" and not 1 <= quality <= 31:
@@ -101,19 +105,20 @@ def extract_frames(
         raise ValueError(f"--width 必须大于 0：{width}")
     if jobs <= 0:
         raise ValueError(f"--jobs 必须大于 0：{jobs}")
-    if not timestamps:
+    if not targets:
         raise ValueError("没有给出任何时间点")
     media_path = Path(source).expanduser()
     if not media_path.is_file():
         raise FileNotFoundError(f"找不到输入文件：{media_path}")
-    signature = parameter_signature(fmt=fmt, width=width or 0, quality=quality if fmt == "jpg" else 0)
-    ensure_dir(frames_dir(out_dir))
+
     results: dict[int, FrameResult] = {}
     pending: list[tuple[int, float, Path]] = []
-    for order, seconds in enumerate(timestamps, start=1):
-        target = frame_path(out_dir, order, float(seconds), fmt, signature)
+    for order, (seconds, target) in enumerate(targets, start=1):
+        target.parent.mkdir(parents=True, exist_ok=True)
         if reuse and target.is_file() and target.stat().st_size > 0:
-            results[order] = FrameResult(index=order, seconds=float(seconds), path=target, reused=True)
+            results[order] = FrameResult(
+                index=order, seconds=float(seconds), path=target, reused=True
+            )
             continue
         pending.append((order, float(seconds), target))
 
@@ -161,5 +166,38 @@ def extract_frames(
                 results[order] = FrameResult(index=order, seconds=seconds, path=target, reused=False)
     ordered = [results[key] for key in sorted(results)]
     if not ordered:
-        raise FfmpegError(f"全部 {len(timestamps)} 个时间点都没有取出画面")
+        raise FfmpegError(f"全部 {len(targets)} 个时间点都没有取出画面")
     return ordered, skipped
+
+
+def extract_frames(
+    source: Path | str,
+    timestamps: Sequence[float],
+    *,
+    out_dir: Path | str,
+    fmt: str = "jpg",
+    width: int | None = None,
+    quality: int = DEFAULT_QUALITY,
+    jobs: int = DEFAULT_JOBS,
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    reuse: bool = False,
+) -> tuple[list[FrameResult], list[dict[str, Any]]]:
+    if not timestamps:
+        raise ValueError("没有给出任何时间点")
+    signature = parameter_signature(
+        fmt=fmt, width=width or 0, quality=quality if fmt == "jpg" else 0
+    )
+    targets = [
+        (float(seconds), frame_path(out_dir, order, float(seconds), fmt, signature))
+        for order, seconds in enumerate(timestamps, start=1)
+    ]
+    return capture_frames(
+        source,
+        targets,
+        fmt=fmt,
+        width=width,
+        quality=quality,
+        jobs=jobs,
+        timeout=timeout,
+        reuse=reuse,
+    )
