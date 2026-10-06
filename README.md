@@ -9,8 +9,7 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 - `src/ihatevideos/media/`：本地音视频处理。ffprobe 读流信息与时长，ffmpeg 取画面、剪切视频与音频、提取音轨与分块（`ihatevideos-media`）。
 - `src/ihatevideos/download/`：下载。aria2c 直链（多线程分段、断点续传、限速），yt-dlp 视频（格式与字幕清单、合流、抽音频、经 aria2c 加速与失败回退），`setup-binaries` 取回 uv 装不进来的 ffprobe（`ihatevideos-download`）。
 - `src/ihatevideos/stt/`：本地语音转写。Qwen3-ASR-1.7B 出文字，Qwen3-ForcedAligner-0.6B 出字级时间戳，句级结果直接交给 `ihatevideos-export`（`ihatevideos-stt`）。权重放工程根目录 `models/`，不进版本库。
-- `src/ihatevideos/agent/`：有监督 Agent（LangChain）。终端启动，按流程调用上面两个模块，写 temp 外暂停审批。
-- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`、`ihatevideos-media`、`ihatevideos-download`、`ihatevideos-stt`）。
+- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-media`、`ihatevideos-download`、`ihatevideos-stt`）。
 - `.agents/skills/`：通用工具 Skills，只存本地，不提交。
 - `temp/`：中间结果、Cookie 文件，只存本地，不提交。
 
@@ -40,14 +39,6 @@ uv run huggingface-cli download Qwen/Qwen3-ForcedAligner-0.6B --local-dir models
 国内网络慢可以把 `huggingface-cli download` 换成 `modelscope download --model <模型名> --local_dir <目录>`。
 下完跑 `uv run ihatevideos-stt doctor`，`ready` 为 `true` 就能用。详细说明见 `skills/ihatevideos-stt/SKILL.md`。
 
-## Agent
-
-```bash
-uv run ihatevideos-agent run --url "<B站链接>"
-```
-
-启动有监督会话：先检查登录态（缺失就在终端提示用户粘 Cookie），执行中写 temp 外当场 y/n 审批，结束打印 JSON（含 `session_dir`）。模型配置：复制 `config.example.toml` 到根目录 `config.toml` 再填真实值（`[model]` 下 `api_base`、`api_key`、`model`，OpenAI 兼容接口，不提交）。调用手册见 `skills/ihatevideos-agent/SKILL.md`。
-
 ## B 站登录态
 
 B 站字幕接口只对登录态返回：
@@ -62,7 +53,7 @@ B 站字幕接口只对登录态返回：
 
 ## Skills
 
-Agent 开发看各 Skill 目录下的 `SKILL.md`。大 Skill 按流程调用小 Skill：输入接入、下载、媒体处理、转录、导出。
+各 Skill 目录下的 `SKILL.md` 是调用手册，写明命令、退出码、判断表与测试提示词。按流程串起来：输入接入、下载、媒体处理、转录、导出。
 
 ## 提交规则
 

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.6.0 — 2026-10-07
+
+- 移除有监督 Agent（`ihatevideos-agent`）与对应 Skill。它做的事手动敲命令都能做到，模块没有测试，且需要工程根目录的 `config.toml`，开箱状态下启动即退出码 2。
+- 一并去掉 `langchain`、`langchain-openai` 两个依赖，`langgraph`、`pydantic` 作为它们的传递依赖同时移出环境。
+- `config.example.toml` 失去使用者，一并删除。
+- `download` 的两处 `find_project_root` 导入改从 `ihatevideos.paths` 取，不再经过 agent 模块。
+
 ## 0.5.0 — 2026-10-07
 
 - 移除 LLM 总结模块（`ihatevideos-summarize`）与对应 Skill，为重新设计让位。它与其它模块没有代码耦合，`langchain`、`langchain-openai` 依赖与 `agent/config.py` 模型配置保留，Agent 仍在使用。

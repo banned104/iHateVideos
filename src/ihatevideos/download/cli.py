@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Callable, Sequence
 
-from ihatevideos.agent.config import find_project_root
+from ihatevideos.paths import find_project_root
 
 from .binaries import resolve_engines
 from .errors import DownloadError, YtdlpUnsupported

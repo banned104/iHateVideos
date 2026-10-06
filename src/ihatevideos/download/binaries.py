@@ -9,7 +9,7 @@ from pathlib import Path
 import aria2c
 import imageio_ffmpeg
 
-from ihatevideos.agent.config import find_project_root
+from ihatevideos.paths import find_project_root
 
 from .errors import EngineStartError
 
