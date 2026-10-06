@@ -44,6 +44,9 @@ uploads/
 # Local model weights (large files, never commit)
 models/
 
+
+# Local analysis output (scratch, not source)
+analysis_outputs/
 # Logs and temp
 *.log
 tmp/

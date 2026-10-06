@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.0 — 2026-10-07
+
+- 移除 LLM 总结模块（`ihatevideos-summarize`）与对应 Skill，为重新设计让位。它与其它模块没有代码耦合，`langchain`、`langchain-openai` 依赖与 `agent/config.py` 模型配置保留，Agent 仍在使用。
+- 语音转写的句级聚合改用识别文本的标点断句，时间从字级时间戳取：标点不再丢失，句子边界不再落在词语中间。同一个 30.7 分钟视频的句数由 113 增至 210。
+- `.gitignore` 忽略本地分析产物目录 `analysis_outputs/`。
+
 ## 0.4.0 — 2026-10-02
 
 - 下载模块（`src/ihatevideos/download/`）与命令行 `ihatevideos-download`：aria2c 直链下载（多线程分段、断点续传、限速、崩溃退避重启），yt-dlp 视频下载（信息树解析、格式与字幕清单、清晰度短标、合流、抽音频、经 aria2c 加速与失败回退）。任务记录里的 `format_id` 是 yt-dlp 实际选中的格式，yt-dlp 关于「哪些格式拿不到」（例如需要大会员）的提示原样透出。

@@ -58,7 +58,7 @@ not a failure — never retry a skipped export, never ask the user about it.
 | `timeline` exit `3` (`no parseable 视频时间`) | Continue WITHOUT the timeline file | No time column or no parseable `MM:SS` is a valid summary shape |
 | `json2md` fails / file missing (exit `2`/`1`) | STOP and report — do not fabricate Markdown | The 原文 Markdown is load-bearing; everything downstream depends on it |
 | Which table? | Always the LAST table in the file | Summaries append tables at the end; earlier tables (if any) are drafts |
-| Timestamps look estimated? | Export anyway, flag it | The extractor only copies `MM:SS` text; timestamp honesty is the summarizer's duty, not yours |
+| Timestamps look estimated? | Export anyway, flag it | The extractor only copies `MM:SS` text; timestamp honesty belongs to whoever produced the summary, not to you |
 
 Exit codes: `0` produced · `3` skipped-normally · `2` bad input · `1` unexpected failure.
 

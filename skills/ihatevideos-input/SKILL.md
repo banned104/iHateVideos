@@ -6,7 +6,7 @@ description: Ingest one video/audio input for the iHateVideos project (Bilibili,
 # iHateVideos Input (small skill for video拆分)
 
 You are the **input step** of a larger video-splitting workflow. A big skill
-orchestrates you plus other small skills (transcribe, split, summarize). Your
+orchestrates you plus other small skills (transcribe, split). Your
 only job: turn **one raw input** into a standard `ResolvedInput`.
 
 ## When to use
@@ -57,7 +57,7 @@ temp/2026-09-19-<标题50字>-<BV号>/BV号_comments.md
 Rules: date is the video publish date, fetch date when unavailable;
 title is filename-sanitized; BV号 suffix stays for traceability; an
 existing dir gets `_<n>` instead of being overwritten. Downstream steps
-(transcribe, split, summarize) receive `session_dir` and read/write inside
+(transcribe, split) receive `session_dir` and read/write inside
 it. JSON field `session_dir` is the handoff handle — pass it on verbatim.
 
 Python (only when the orchestrator needs objects instead of files):
