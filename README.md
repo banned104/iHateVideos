@@ -10,7 +10,8 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 - `src/ihatevideos/download/`：下载。aria2c 直链（多线程分段、断点续传、限速），yt-dlp 视频（格式与字幕清单、合流、抽音频、经 aria2c 加速与失败回退），`setup-binaries` 取回 uv 装不进来的 ffprobe（`ihatevideos-download`）。
 - `src/ihatevideos/stt/`：本地语音转写。Qwen3-ASR-1.7B 出文字，Qwen3-ForcedAligner-0.6B 出字级时间戳，句级结果直接交给 `ihatevideos-export`（`ihatevideos-stt`）。权重放工程根目录 `models/`，不进版本库。
 - `src/ihatevideos/summarize/`：图文笔记。给视频配画面：列模板、把画面取到 Markdown 同级的 `assets/`、把正文里的占位符换成图片引用（`ihatevideos-summarize`）。模板放工程根目录 `templates/`，可以自己加。
-- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-media`、`ihatevideos-download`、`ihatevideos-stt`、`ihatevideos-summarize`）。
+- `src/ihatevideos/doctor/`：运行环境检查。一次查完 Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站 cookies 与登录态、系统代理（`ihatevideos-doctor`）。
+- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-media`、`ihatevideos-download`、`ihatevideos-stt`、`ihatevideos-summarize`、`ihatevideos-doctor`）。
 - `.agents/skills/`：通用工具 Skills，只存本地，不提交。
 - `temp/`：中间结果、Cookie 文件，只存本地，不提交。
 
@@ -28,6 +29,7 @@ uv run ihatevideos-download formats "https://www.bilibili.com/video/BV1xx411c7mD
 uv run ihatevideos-download file "https://example.com/big.iso" --out-dir temp/download
 uv run ihatevideos-summarize templates
 uv run ihatevideos-summarize template study-notes
+uv run ihatevideos-doctor
 ```
 
 ## 语音转写权重
@@ -69,6 +71,21 @@ B 站字幕接口只对登录态返回：
         函数对象-0012s.jpg
 
 模板放工程根目录 `templates/`，现有三套：`study-notes`（教学视频笔记）、`podcast`（播客）、`meeting`（会议）。往这个目录里加 `.md` 就多一套模板。
+
+## 运行环境检查
+
+`ihatevideos-doctor` 一次把运行环境查一遍：Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站 cookies 与登录态、系统代理。默认跑烟测——用 `lavfi` 现造 1 秒样片，真的走一遍读流、截 jpg、截 png、抽 wav、剪一段，每步检查产物而不看 ffmpeg 的提示文本；CUDA 用一次矩阵乘确认每块卡真的能算。
+
+```bash
+uv run ihatevideos-doctor
+uv run ihatevideos-doctor --only ffmpeg,gpu     # 只看指定分组
+uv run ihatevideos-doctor --no-smoke            # 只做位置与版本解析
+uv run ihatevideos-doctor --deep                # 额外加载两份权重跑一次识别
+uv run ihatevideos-doctor --json                # 给上层 Agent 读的结构化结果
+```
+
+检查项有五种状态：`ok`、`warn`（能用但有隐患）、`missing`（找不到）、`fail`（找到了但跑不通）、`skip`（这次没测）。挡住某条命令的算必修，其余算选修；选修缺了退出码仍为 `0`，只记进 `warnings`。退出码 `0` 必修齐备、`3` 有必修未就绪、`2` 参数写错。
+
 ## Skills
 
 各 Skill 目录下的 `SKILL.md` 是调用手册，写明命令、退出码、判断表与测试提示词。按流程串起来：输入接入、下载、媒体处理、转录、导出。

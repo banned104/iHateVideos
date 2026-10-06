@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## 0.8.0 — 2026-10-08
+
+- 新增运行环境检查模块（`src/ihatevideos/doctor/`）与命令行 `ihatevideos-doctor`，一次把 Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站 cookies 与登录态、系统代理查一遍。
+- 烟测不看程序的提示文本，只看产物：用 `lavfi` 现造 1 秒样片，依次跑 ffprobe 读流、截 jpg、截 png、抽 wav、剪一段，每步检查文件存在且能被读回；CUDA 烟测在每块卡上做一次全 1 矩阵乘并比对结果；`--deep` 真正加载两份权重并跑一次识别。
+- 检查项分 `ok`、`warn`、`missing`、`fail`、`skip` 五种状态，`missing`（找不到）与 `fail`（找到了但跑不通）分开报告。挡住某条命令的算必修，其余算选修；选修缺了退出码仍为 `0`，只记进 `warnings`。
+- 新增 `ffmpeg 一致性` 检查：`media` 走环境变量与 PATH，`download` 走 `temp/bin/`，两处解析结果不同时给出 `warn`。
+- 输出默认是分组文本，`--json` 给出同构数据供上层 Agent 读取。`stt doctor`、`download engines`、`input cookies` 三个原有检查命令保留，`doctor` 做跨模块汇总并补上它们没覆盖的部分。
+
 ## 0.7.0 — 2026-10-08
 
 - 重建图文笔记模块（`src/ihatevideos/summarize/`）与命令行 `ihatevideos-summarize`：`templates` 列出写作模板，`template` 打印模板正文，`frames` 按 Markdown 里的画面占位符取帧到笔记同级的 `assets/`，`insert` 把占位符换成图片引用。
