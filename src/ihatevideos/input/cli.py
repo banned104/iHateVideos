@@ -7,15 +7,15 @@ Independent entry point (no Agent needed)::
     ihatevideos-input ids <input>
     ihatevideos-input ximalaya <url>
     ihatevideos-input resolve (--url URL | --audio-path PATH) [options]
-    ihatevideos-input cookies [--file cookies.txt]
+    ihatevideos-input cookies
     ihatevideos-input subtitle <bilibili-target> [--out-dir DIR]
 
 ``resolve`` is the same contract the Skill uses: exactly one input in,
 ``ResolvedInput`` out, printed as JSON on stdout. Anything that downloads
 audio or hits the network happens only in ``resolve`` (and Bilibili subtitle
 probe inside it); the other subcommands are pure offline parsing.
-``cookies`` imports SESSDATA from a browser-exported Netscape cookies.txt
-into the credential file ``bili`` reads, no QR scan needed.
+``cookies`` checks the browser-exported Netscape cookies.txt dropped into
+``temp/config/`` against the Bilibili login API, no QR scan needed.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from .bilibili_ids import (
     extract_bvid,
     normalize_bilibili_target,
 )
-from .cookies import credential_status, import_bilibili_cookies
+from .cookies import credential_status, verify_login
 from .resolver import resolve_input
 from .subtitle import fetch_bilibili_subtitle
 from .url_detect import detect_platform
@@ -102,6 +102,7 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
             "audio_path": str(result.audio_file) if result.audio_file else None,
             "has_native_subtitle": result.subtitle is not None,
             "subtitle_chars": len(result.subtitle.text) if result.subtitle else 0,
+            "subtitle_reason": result.subtitle_reason,
             "resource_id": result.transcription_id,
             "bvid": result.bvid,
             "platform": result.platform.value if result.platform else None,
@@ -113,20 +114,24 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cookie_hint(status: dict) -> str:
+    if status["state"] == "missing":
+        return f"把浏览器导出的 cookies.txt 复制到 {status['dir']}"
+    files = "、".join(status.get("files", []))
+    return f"{status['dir']} 里没有可用的 cookies 文件（现有：{files}）"
+
+
 def _cmd_cookies(args: argparse.Namespace) -> int:
-    if args.check:
-        _print_json({"command": "cookies", **credential_status()})
-        return 0
-    try:
-        dest = import_bilibili_cookies(args.file)
-    except FileNotFoundError as exc:
-        print(f"error: file not found: {exc}", file=sys.stderr)
-        return 2
-    except ValueError as exc:
-        print(f"error: bad input: {exc}", file=sys.stderr)
-        return 2
-    _print_json({"command": "cookies", "saved_to": str(dest)})
-    return 0
+    status = credential_status()
+    payload = {"command": "cookies", **status}
+    if status["state"] == "ok":
+        logged_in, detail = verify_login()
+    else:
+        logged_in, detail = False, _cookie_hint(status)
+    payload["login"] = logged_in
+    payload["detail"] = detail
+    _print_json(payload)
+    return 0 if logged_in else 3
 
 
 def _cmd_subtitle(args: argparse.Namespace) -> int:
@@ -137,8 +142,8 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
     )
     from .metadata import get_video_metadata
 
-    subtitle = fetch_bilibili_subtitle(args.target, timeout_seconds=args.timeout)
-    if subtitle is None:
+    result = fetch_bilibili_subtitle(args.target, timeout_seconds=args.timeout)
+    if result.subtitle is None:
         _print_json(
             {
                 "command": "subtitle",
@@ -146,10 +151,12 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
                 "session_dir": None,
                 "text_path": None,
                 "items_path": None,
+                "reason": result.reason,
                 "skipped": "no native subtitle (go to ASR)",
             }
         )
         return 3
+    subtitle = result.subtitle
     bvid = extract_bvid(args.target) or "subtitle"
     title, pubdate = "", ""
     try:
@@ -303,10 +310,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_resolve.set_defaults(func=_cmd_resolve)
 
     p_cookies = sub.add_parser(
-        "cookies", help="Import SESSDATA from a browser cookies.txt (else BILIBILI_COOKIES_FILE)."
+        "cookies", help="Check the cookies file in temp/config/ against the Bilibili login API."
     )
-    p_cookies.add_argument("--file", default=None)
-    p_cookies.add_argument("--check", action="store_true")
     p_cookies.set_defaults(func=_cmd_cookies)
 
     p_sub = sub.add_parser(

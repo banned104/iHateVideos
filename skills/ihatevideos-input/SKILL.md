@@ -28,14 +28,14 @@ This skill belongs to the `iHateVideos` uv project (sibling of
 
 ## API (use exactly this)
 
-End-to-end Bilibili subtitle flow. Three CLI calls, zero Python needed:
+End-to-end Bilibili subtitle flow. The user drops the browser-exported
+`cookies.txt` into `temp/config/`; then two CLI calls, zero Python needed:
 
 ```bash
-uv run ihatevideos-input cookies --check
-# state: ok -> go to step 3. otherwise -> step 2.
-uv run ihatevideos-input cookies --file <pasted-file>
+uv run ihatevideos-input cookies
+# exit 0 -> login: true, proceed. exit 3 -> login: false, read `detail`, ask the user to re-export.
 uv run ihatevideos-input subtitle <bilibili-url> --out-dir temp
-# exit 0 -> session_dir + text_path + items_path ready. exit 3 -> no native subtitle, go to ASR.
+# exit 0 -> session_dir + text_path + items_path ready. exit 3 -> no native subtitle (the reason field says why), go to ASR.
 uv run ihatevideos-input comments <bilibili-url> --limit 10 --reply-limit 10 --session-dir <session_dir>
 # optional step, Bilibili only. exit 0 -> comments_json + comments_markdown ready.
 # exit 1 -> continue without comments, never block the workflow.
@@ -86,6 +86,7 @@ result = resolve_input(audio_path="uploads/BV1xx411c7mD_title.m4a")
 | `subtitle` | `BilibiliSubtitle(text, items) \| None` — B站 only, with ms timeline; `None` means "go to ASR" |
 | `use_local_audio` | `True` only for uploaded files |
 | `platform` | `Platform.BILIBILI/XIAOYUZHOU/XIMALAYA`, `None` for local files |
+| `subtitle_reason` | why the native subtitle is missing (未登录 / 分P不存在 / 该分P没有字幕轨道 …); empty when `subtitle` is set. Report it instead of silently switching to ASR. |
 
 Helpers (only when the orchestrator asks for inspection, not downloading):
 
@@ -93,21 +94,24 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 - `extract_bvid(s)`, `extract_bilibili_target_id(s)`,
   `normalize_bilibili_target(s)`
 - `resolve_ximalaya_sound_url(url) -> (canonical_url, track_id)`
-- `fetch_bilibili_subtitle(target) -> BilibiliSubtitle | None`
+- `fetch_bilibili_subtitle(target) -> SubtitleResult` — `.subtitle` holds text
+  + ms timeline, `.reason` explains a miss (always report it); each 分P uses
+  its own cid, tracks are ranked manual-Chinese → AI-Chinese → others
 - `build_transcription_artifact_name(name, resource_id)`
-- `import_bilibili_cookies(path | None) -> Path` — read SESSDATA from a
-  browser-exported Netscape `cookies.txt` (or `BILIBILI_COOKIES_FILE` env)
-  into the credential file `bili` reads; call it when subtitle fetch fails
-  with empty sessdata instead of asking the user to QR-scan
+- `find_cookies_file() -> Path | None`, `verify_login() -> (bool, str)` —
+  the newest usable `cookies.txt` under `temp/config/`, and one live check
+  against the Bilibili login API; `credential_status()` reports the local
+  state only (`missing` / `empty` / `ok`)
 
 ## Rules (why they exist)
 
 1. **One input per call.** Batch URLs by calling repeatedly; the module keeps
    no global state and each call creates its own download dir entry.
 2. **B站字幕优先但可降级。** `subtitle is not None` means skip ASR and use
-   `subtitle.text/items` directly. `None` (no subtitles, `bili` CLI missing,
+   `subtitle.text/items` directly. `None` (no subtitles, missing credential,
    timeout) is a normal cache-miss — fall through to `audio_file` + ASR,
-   never fail the whole task for it.
+   never fail the whole task for it. Always surface `subtitle_reason`: the
+   user must see whether it is a login problem or the video simply has none.
 3. **分P是不同资源。** `?p=2` becomes `BV..._p2` in `transcription_id`;
    never merge parts.
 4. **喜马拉雅只收单集。** `album/` links raise `ValueError` — ask the
@@ -118,14 +122,14 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 6. **Errors are typed:** `ValueError` = bad/unsupported input (ask user for a
    new link); `FileNotFoundError` = missing local file or zero downloads;
    `RuntimeError` = platform API failure (retry once, then report).
-7. **Bilibili login state first.** Before any Bilibili subtitle fetch, run
-   `uv run ihatevideos-input cookies --check`. `state: ok` means proceed.
-   `missing / empty / stale / broken` means stop and prompt the user with
-   the exact 3 steps from the project README (paste the browser-exported
-   file into `temp/` under any name and tell you the filename, run
-   `cookies --file` on it, re-run `--check`). Never ask
-   the user to paste the SESSDATA value into chat; secrets stay in local
-   files. After a successful import, retry the subtitle fetch once.
+7. **Bilibili login state first.** The user drops the browser-exported
+   Netscape `cookies.txt` into `temp/config/` (any name; the newest file with
+   SESSDATA wins). Run `uv run ihatevideos-input cookies`: exit 0 with
+   `login: true` means proceed. Exit 3 means stop and read `detail` — it
+   names the cause (no file, no usable file in the directory, a Bilibili
+   error code, or cookies the server no longer accepts); ask the user to
+   re-export into the same directory and re-run. Never ask the user to paste
+   SESSDATA into chat; secrets stay in local files.
 8. **Comments are optional and Bilibili-only.** Fetch them only when the
    orchestrator needs audience viewpoints (`comments --limit 10
    --reply-limit 10`: 10 hot top-level comments, each with up to 10 child
@@ -165,9 +169,8 @@ uv run ihatevideos-input ids <bilibili-input>  # offline: bvid/page/target_id/no
 uv run ihatevideos-input ximalaya <url>        # offline for direct sound links
 uv run ihatevideos-input resolve --url <url> --download-dir ./work        # may download
 uv run ihatevideos-input resolve --audio-path uploads/BV1xx411c7mD_x.m4a  # local, offline
-uv run ihatevideos-input cookies --file cookies.txt  # import login state, no QR needed
-uv run ihatevideos-input cookies --check  # ok / missing / empty / stale / broken
-uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text + items files
+uv run ihatevideos-input cookies  # check temp/config/ cookies against the Bilibili login API
+uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text + items files; exit 3 prints reason
 ```
 
 `resolve` prints the Skill contract as JSON
@@ -176,7 +179,7 @@ uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text +
 
 ## Test prompts for this skill
 
-1. "B站字幕端到端：先 `--check`，坏了就导入用户粘的文件，再 `subtitle` 落文件，报三条路径。"
+1. "B站字幕端到端：把导出的 cookies.txt 复制到 `temp/config/`，跑 `cookies` 确认 `login: true`，再 `subtitle` 写出文件，报三条路径。"
 2. "把这个 B站链接接进来：`https://www.bilibili.com/video/BV1xx411c7mD?p=2`，告诉我有没有原生字幕、音频在哪、resource_id 是什么。"
 3. "用户传了一个文件 `uploads/BV1xx411c7mD_访谈.m4a`，按本地输入走，不要联网。"
 4. "这个能接吗：`https://www.ximalaya.com/album/12345`？不能的话说明原因并索要单集链接。"

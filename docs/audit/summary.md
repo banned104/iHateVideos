@@ -26,7 +26,7 @@
 
 ## 目录构成
 
-- `src/ihatevideos/input/`：13 个源文件。`platform.py` 放平台枚举、`PlatformMetadata`、下载器接口与文件名处理；`url_detect.py` 做平台判定与 ID 提取；`resolver.py` 是统一入口；`bilibili_audio.py` 通过 yutto 的 Python 接口下载音频；`subtitle.py` 调用 `bili` 命令行取原生字幕；`comments.py` 走 B 站 WBI 接口取评论并在失败时改用旧接口；`cookies.py` 从 Netscape 格式 cookies.txt 导入 SESSDATA；`metadata.py` 取视频元数据；`xiaoyuzhou.py` 与 `ximalaya.py` 是两个平台的下载器；`artifacts.py` 负责会话目录与产物文件名；`bilibili_categories.py` 是分区编号对照表。
+- `src/ihatevideos/input/`：13 个源文件。`platform.py` 放平台枚举、`PlatformMetadata`、下载器接口与文件名处理；`url_detect.py` 做平台判定与 ID 提取；`resolver.py` 是统一入口；`bilibili_audio.py` 通过 yutto 的 Python 接口下载音频；`subtitle.py` 按分P的 cid 直连 B 站播放器接口取原生字幕，失败时给出可读原因；`comments.py` 走 B 站 WBI 接口取评论并在失败时改用旧接口；`cookies.py` 自动发现工程内 `temp/config/` 下的 cookies.txt 并校验登录态；`metadata.py` 取视频元数据；`xiaoyuzhou.py` 与 `ximalaya.py` 是两个平台的下载器；`artifacts.py` 负责会话目录与产物文件名；`bilibili_categories.py` 是分区编号对照表。
 - `src/ihatevideos/export/`：5 个源文件。`json_to_md.py` 兼容 Qwen、Groq、火山三类转录 JSON；`tables.py` 提取 Markdown 表格块；`timeline.py` 从表格里的 `视频时间` 列解析时间点；`markdown_fmt.py` 在装有 `markdownlint-cli2` 时格式化。
 - `src/ihatevideos/summarize/`：4 个源文件。`presets.py` 内置四个提示词预设（金融主题 `timeline_merge`、通用总结 `summary`、学习笔记 `study_notes`、投资播客 `investment_podcast`）；`client.py` 用 langchain-openai 的 `ChatOpenAI` 调模型；`summarize.py` 负责提示词拼装、标题推断与观点追加的后处理。
 - `src/ihatevideos/media/`：8 个源文件。`ffmpeg.py` 统一解析 `ffmpeg`/`ffprobe` 位置与执行；`paths.py` 用参数摘要（sha1 前 8 位）区分不同参数的产物；`timestamps.py` 解析 `90`、`1:30`、`1:02:03.250` 三种写法；`probe.py`、`frames.py`、`clip.py`、`audio.py` 是四个功能实现。
@@ -118,14 +118,14 @@ flowchart TD
 | `uv run --no-sync python -m compileall -q src` | 退出码 0 |
 | `uv run --no-sync ihatevideos-input detect "BV1xx411c7mD"` | 输出 `platform: bilibili` |
 | `uv run --no-sync ihatevideos-input ids "https://www.bilibili.com/video/BV1Kxeb6mE8o?p=2"` | `target_id` 为 `BV1Kxeb6mE8o_p2`，`normalized` 保留 `?p=2` |
-| `uv run --no-sync ihatevideos-input cookies --check` | `state: ok`，凭据文件 5.5 天前导入 |
+| `uv run --no-sync ihatevideos-input cookies` | 自动找到 `temp/config/` 下的 cookies.txt 并校验登录态 |
 | `uv run --no-sync ihatevideos-media probe "temp/media/470：1RV1126FFMPEG多路码流监控项目大体讲解.mp4"` | 输出 789.146 秒、4K 分辨率 20fps、aac 音轨 |
 | `uv run --no-sync ihatevideos-summarize presets` | 四个预设全部列出 |
 | `uv run --no-sync ruff check src` | 2 处未使用导入 |
 
-本机环境：`ffmpeg` 与 `ffprobe` 位于 `F:\Softwares\ffmpeg-master-latest-win64-gpl\bin`，在 PATH 中可用；`markdownlint-cli2` 未安装，表格格式化步骤会被跳过；`.venv/Scripts/bili.exe` 存在，版本 0.6.2。
+本机环境：`ffmpeg` 与 `ffprobe` 位于 `F:\Softwares\ffmpeg-master-latest-win64-gpl\bin`，在 PATH 中可用；`markdownlint-cli2` 未安装，表格格式化步骤会被跳过。
 
-依赖实际版本：bilibili-cli 0.6.2、langchain 1.4.2、langchain-openai 1.6.2、langgraph 1.2.11、yutto 2.1.1、httpx 0.28.1、requests 2.34.2。
+依赖实际版本：bilibili-api-python 17.4.2、langchain 1.4.2、langchain-openai 1.6.2、langgraph 1.2.11、yutto 2.1.1、httpx 0.28.1、requests 2.34.2。
 
 ## 当前本地状态
 

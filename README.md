@@ -36,13 +36,15 @@ uv run ihatevideos-agent run --url "<B站链接>"
 
 ## B 站登录态
 
-B 站字幕接口只对登录态返回。导入一次，7 天内有效：
+B 站字幕接口只对登录态返回：
 
-1. 在浏览器登录 B 站，用 Cookie 导出扩展（例如 Get cookies.txt LOCALLY）导出 Netscape 格式，把文件粘到 `temp/config/` 目录下，文件名随意。
-2. 运行 `uv run ihatevideos-input cookies --file temp/config/<你粘的文件名>`（或设置 `BILIBILI_COOKIES_FILE` 后不传参数）。
-3. 运行 `uv run ihatevideos-input cookies --check`，`state` 为 `ok` 表示可用。
+1. 在浏览器登录 B 站，用 Cookie 导出扩展（例如 Get cookies.txt LOCALLY）导出 Netscape 格式。
+2. 把导出的文件复制到 `temp/config/`，文件名随意，程序自己会找（多份时取最近修改的那份）。
+3. 运行 `uv run ihatevideos-input cookies`，`login` 为 `true` 表示可用。
 
-`state` 为 `missing` / `empty` / `stale` / `broken` 时，按上面三步重新导入一遍。不要把 SESSDATA 的值贴到聊天里，密钥只留在本地文件。
+文件只放在工程内，不写用户主目录，删除工程即可清除。cookies 失效时重新导出一份覆盖进去即可。
+
+`cookies` 会用这份文件调一次 B 站登录接口：`login: true` 表示服务端仍认；`false` 时 `detail` 给出原因（没有文件、目录里没有可用的 cookies、B 站返回的错误码、或这份 cookies 已失效）。不要把 SESSDATA 的值贴到聊天里，密钥只留在本地文件。
 
 ## Skills
 

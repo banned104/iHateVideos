@@ -26,7 +26,7 @@ from .bilibili_ids import (
 )
 from .metadata import VideoMetadata, get_video_metadata
 from .platform import Platform
-from .subtitle import BilibiliSubtitle, fetch_bilibili_subtitle
+from .subtitle import BilibiliSubtitle, SubtitleResult, fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .xiaoyuzhou import XiaoyuzhouDownloader
 from .ximalaya import XimalayaDownloader
@@ -43,6 +43,7 @@ class ResolvedInput:
     subtitle: BilibiliSubtitle | None
     use_local_audio: bool
     platform: Platform | None
+    subtitle_reason: str = ""
 
 
 def resolve_input(
@@ -83,6 +84,7 @@ def resolve_input(
             subtitle=None,
             use_local_audio=True,
             platform=None,
+            subtitle_reason="本地文件输入，不取 B站字幕",
         )
 
     if not url.strip():
@@ -104,13 +106,15 @@ def resolve_input(
             except Exception as exc:
                 logger.warning("Failed to fetch video metadata: %s", exc)
 
-        subtitle = None
+        subtitle_result = SubtitleResult(None, "已按参数跳过 B站字幕")
         if prefer_bilibili_subtitle:
             logger.info("=== 获取 B 站字幕 ===")
-            subtitle = fetch_bilibili_subtitle(
+            subtitle_result = fetch_bilibili_subtitle(
                 normalized_url, timeout_seconds=subtitle_timeout_seconds
             )
-        if subtitle is not None:
+            if subtitle_result.subtitle is None:
+                logger.info("B 站字幕不可用：%s", subtitle_result.reason)
+        if subtitle_result.subtitle is not None:
             audio_file = None
         else:
             logger.info("=== 下载音频 ===")
@@ -130,9 +134,10 @@ def resolve_input(
             metadata=metadata,
             bvid=bvid,
             transcription_id=transcription_id or bvid,
-            subtitle=subtitle,
+            subtitle=subtitle_result.subtitle,
             use_local_audio=False,
             platform=platform,
+            subtitle_reason=subtitle_result.reason,
         )
 
     if platform == Platform.XIAOYUZHOU:
@@ -150,6 +155,7 @@ def resolve_input(
             subtitle=None,
             use_local_audio=False,
             platform=platform,
+            subtitle_reason="非 B站平台，没有原生字幕",
         )
 
     if platform == Platform.XIMALAYA:
@@ -167,6 +173,7 @@ def resolve_input(
             subtitle=None,
             use_local_audio=False,
             platform=platform,
+            subtitle_reason="非 B站平台，没有原生字幕",
         )
 
     raise ValueError(f"不支持的平台: {platform}")

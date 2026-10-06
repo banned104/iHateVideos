@@ -34,11 +34,14 @@ from .comments import (
     write_comments_markdown,
 )
 from .cookies import (
-    BILIBILI_COOKIES_FILE_ENV,
+    BILIBILI_USER_AGENT,
     bilibili_cookie_string,
+    config_dir,
+    credential_data,
     credential_status,
-    import_bilibili_cookies,
+    find_cookies_file,
     load_bilibili_cookies,
+    verify_login,
 )
 from .metadata import VideoMetadata, get_video_metadata, get_video_metadata_async
 from .platform import (
@@ -49,13 +52,13 @@ from .platform import (
     sanitize_filename_component,
 )
 from .resolver import ResolvedInput, resolve_input
-from .subtitle import BilibiliSubtitle, fetch_bilibili_subtitle
+from .subtitle import BilibiliSubtitle, SubtitleResult, fetch_bilibili_subtitle
 from .url_detect import detect_platform, extract_platform_id
 from .xiaoyuzhou import XiaoyuzhouDownloader, fetch_xiaoyuzhou_metadata
 from .ximalaya import XimalayaDownloader, resolve_ximalaya_sound_url
 
 __all__ = [
-    "BILIBILI_COOKIES_FILE_ENV",
+    "BILIBILI_USER_AGENT",
     "BilibiliComment",
     "BilibiliCommentBundle",
     "BilibiliSubtitle",
@@ -66,14 +69,17 @@ __all__ = [
     "PlatformDownloader",
     "PlatformMetadata",
     "ResolvedInput",
+    "SubtitleResult",
     "VideoMetadata",
     "XiaoyuzhouDownloader",
     "XimalayaDownloader",
     "bilibili_cookie_string",
     "comment_artifact_paths",
     "comments_to_markdown",
+    "config_dir",
     "count_comment_replies",
     "count_up_replies",
+    "credential_data",
     "credential_status",
     "detect_platform",
     "extract_bilibili_page",
@@ -85,9 +91,9 @@ __all__ = [
     "fetch_bilibili_subtitle",
     "fetch_comments_with_login",
     "fetch_xiaoyuzhou_metadata",
+    "find_cookies_file",
     "get_video_metadata",
     "get_video_metadata_async",
-    "import_bilibili_cookies",
     "load_bilibili_cookies",
     "normalize_bilibili_target",
     "prepare_session_dir",
@@ -97,6 +103,7 @@ __all__ = [
     "sanitize_filename_component",
     "session_dir_name",
     "subtitle_artifact_paths",
+    "verify_login",
     "write_comments_json",
     "write_comments_markdown",
     "write_meta_json",

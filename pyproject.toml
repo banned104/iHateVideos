@@ -9,7 +9,7 @@ requires-python = ">=3.11"
 dependencies = [
     "aria2>=0.0.1b0",
     "aria2p>=0.12.1",
-    "bilibili-cli>=0.6.2",
+    "bilibili-api-python>=17.4.2",
     "httpx>=0.28.1",
     "imageio-ffmpeg>=0.6.0",
     "langchain>=1.4.2",

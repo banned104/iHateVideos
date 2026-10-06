@@ -5,7 +5,7 @@ from pathlib import Path
 
 from langgraph.types import Command
 
-from ihatevideos.input import credential_status, import_bilibili_cookies
+from ihatevideos.input import verify_login
 
 from .config import AgentPaths, load_model_config, resolve_paths
 from .harness import build_agent
@@ -18,48 +18,22 @@ def needs_bilibili(text: str) -> bool:
     return any(hint.lower() in lowered for hint in BILIBILI_HINTS)
 
 
-def find_pasted_cookies(config_dir: Path) -> Path | None:
-    exact = config_dir / "cookies.txt"
-    if exact.is_file():
-        return exact
-    candidates = sorted(
-        config_dir.glob("*.txt"), key=lambda item: item.stat().st_mtime, reverse=True
-    )
-    if len(candidates) == 1:
-        return candidates[0]
-    if candidates:
-        print("temp/config 下有多个 txt：")
-        for item in candidates:
-            print(f"  {item.name}")
-        name = input("输入要用的文件名：").strip()
-        chosen = config_dir / name
-        return chosen if chosen.is_file() else None
-    return None
-
-
 def ensure_login(paths: AgentPaths) -> bool:
-    if credential_status().get("state") == "ok":
+    ok, detail = verify_login()
+    if ok:
         return True
-    print("B站登录态不可用，先导入：")
-    print("1. 浏览器登录B站，用 Cookie 导出扩展导出 Netscape 格式")
-    print(f"2. 把文件粘到 {paths.config_dir} 下，文件名随意")
+    print(f"B站登录态不可用：{detail}")
+    print("1. 浏览器登录 B站，用 Cookie 导出扩展导出 Netscape 格式")
+    print(f"2. 把文件复制到 {paths.config_dir} 下，文件名随意")
     for _ in range(3):
-        answer = input("粘好后回车继续（输入 q 退出）：").strip().lower()
+        answer = input("复制好后回车继续（输入 q 退出）：").strip().lower()
         if answer == "q":
             return False
-        found = find_pasted_cookies(paths.config_dir)
-        if found is None:
-            print(f"{paths.config_dir} 下没找到 txt，重粘后回车")
-            continue
-        try:
-            import_bilibili_cookies(found)
-        except (FileNotFoundError, ValueError) as exc:
-            print(f"导入失败：{exc}")
-            continue
-        if credential_status().get("state") == "ok":
-            print("登录态可用，继续")
+        ok, detail = verify_login()
+        if ok:
+            print(f"登录态可用（{detail}），继续")
             return True
-        print("导入后仍不可用，重新导出一份再试")
+        print(f"仍不可用：{detail}")
     return False
 
 

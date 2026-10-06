@@ -2,6 +2,8 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..paths import find_project_root
+
 
 @dataclass(frozen=True)
 class AgentModelConfig:
@@ -16,14 +18,6 @@ class AgentPaths:
     temp_dir: Path
     config_dir: Path
     config_file: Path
-
-
-def find_project_root(start: Path | None = None) -> Path:
-    current = (start or Path.cwd()).resolve()
-    for candidate in (current, *current.parents):
-        if (candidate / "pyproject.toml").is_file():
-            return candidate
-    return current
 
 
 def resolve_paths(root: Path | None = None) -> AgentPaths:
