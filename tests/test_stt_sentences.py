@@ -1,60 +1,77 @@
 from ihatevideos.stt import AlignUnit, group_sentences
 
-
-def unit(text: str, start: float, end: float) -> AlignUnit:
-    return AlignUnit(text=text, start_seconds=start, end_seconds=end)
+SKIPPED = "，。！？、；：,.!?;: "
 
 
-def test_splits_on_sentence_end():
-    units = [
-        unit("你", 0.0, 0.2),
-        unit("好", 0.2, 0.4),
-        unit("。", 0.4, 0.5),
-        unit("再", 0.5, 0.7),
-        unit("见", 0.7, 0.9),
-        unit("。", 0.9, 1.0),
-    ]
-    sentences = group_sentences(units)
+def units_for(text: str, *, start: float = 0.0, step: float = 0.1) -> list[AlignUnit]:
+    # 模拟时间戳模型：只给发音字符出时间，标点没有对应的 unit
+    result: list[AlignUnit] = []
+    clock = start
+    for char in text:
+        if char in SKIPPED:
+            continue
+        result.append(
+            AlignUnit(
+                text=char,
+                start_seconds=round(clock, 3),
+                end_seconds=round(clock + step, 3),
+            )
+        )
+        clock += step
+    return result
+
+
+def test_keeps_punctuation_and_splits_on_it():
+    text = "你好。再见。"
+    sentences = group_sentences(text, units_for(text))
     assert [item.text for item in sentences] == ["你好。", "再见。"]
     assert sentences[0].begin_time_ms == 0
-    assert sentences[0].end_time_ms == 500
-    assert sentences[1].begin_time_ms == 500
-    assert sentences[1].end_time_ms == 1000
+    assert sentences[0].end_time_ms == 200
+    assert sentences[1].begin_time_ms == 200
+    assert sentences[1].end_time_ms == 400
 
 
-def test_flushes_remaining_text_without_punctuation():
-    sentences = group_sentences([unit("甲", 0.0, 0.1), unit("乙", 0.1, 0.2)])
-    assert [item.text for item in sentences] == ["甲乙"]
+def test_characters_absent_from_units_are_skipped():
+    text = "C++好。"
+    units = [
+        AlignUnit(text="C", start_seconds=0.0, end_seconds=0.1),
+        AlignUnit(text="好", start_seconds=0.1, end_seconds=0.2),
+    ]
+    sentences = group_sentences(text, units)
+    assert [item.text for item in sentences] == ["C++好。"]
+    assert sentences[0].begin_time_ms == 0
+    assert sentences[0].end_time_ms == 200
 
 
-def test_breaks_long_run_at_clause_boundary():
-    head = [unit("甲", index * 0.1, index * 0.1 + 0.1) for index in range(30)]
-    comma = unit("，", 3.0, 3.1)
-    tail = [unit("乙", 3.1 + index * 0.1, 3.2 + index * 0.1) for index in range(40)]
-    sentences = group_sentences(head + [comma] + tail, max_chars=60)
-    assert len(sentences) >= 2
+def test_without_units_times_are_zero():
+    sentences = group_sentences("你好。", [])
+    assert [item.text for item in sentences] == ["你好。"]
+    assert sentences[0].begin_time_ms == 0
+    assert sentences[0].end_time_ms == 0
+
+
+def test_long_run_breaks_before_exceeding_limit():
+    text = "甲" * 40 + "，" + "乙" * 40 + "。"
+    sentences = group_sentences(text, units_for(text), max_chars=50)
+    assert len(sentences) == 2
     assert sentences[0].text.endswith("，")
-    assert sentences[0].text.count("甲") == 30
+    assert sentences[1].text.endswith("。")
 
 
-def test_forces_break_on_max_seconds():
-    units = [unit("字", index * 0.5, index * 0.5 + 0.5) for index in range(100)]
-    sentences = group_sentences(units, max_chars=1000, max_seconds=10.0)
-    assert len(sentences) > 1
-    for item in sentences:
-        assert item.end_time_ms - item.begin_time_ms <= 11000
+def test_breaks_on_max_seconds():
+    text = "甲" * 10 + "，" + "乙" * 10 + "。"
+    sentences = group_sentences(
+        text, units_for(text, step=1.0), max_chars=1000, max_seconds=10.0
+    )
+    assert len(sentences) == 2
+    assert sentences[0].end_time_ms - sentences[0].begin_time_ms <= 11000
 
 
-def test_empty_input_returns_nothing():
-    assert group_sentences([]) == []
+def test_clause_marks_do_not_break_a_short_sentence():
+    text = "你好，再见"
+    sentences = group_sentences(text, units_for(text))
+    assert [item.text for item in sentences] == ["你好，再见"]
 
 
-def test_whitespace_only_units_are_dropped():
-    units = [unit(" ", 0.0, 0.1), unit(" ", 0.1, 0.2)]
-    assert group_sentences(units) == []
-
-
-def test_strips_surrounding_spaces():
-    units = [unit(" ", 0.0, 0.1), unit("你", 0.1, 0.2), unit("好", 0.2, 0.3)]
-    sentences = group_sentences(units)
-    assert [item.text for item in sentences] == ["你好"]
+def test_empty_text_returns_nothing():
+    assert group_sentences("", []) == []

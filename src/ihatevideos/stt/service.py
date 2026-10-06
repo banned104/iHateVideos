@@ -76,7 +76,7 @@ def transcribe(
         load_seconds=load_seconds,
         transcribe_seconds=transcribe_seconds,
         text=text,
-        sentences=group_sentences(units),
+        sentences=group_sentences(text, units),
         units=units,
         out_path=out_file,
     )
