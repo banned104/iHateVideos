@@ -34,12 +34,12 @@ uv run ihatevideos-agent run --task "<自由任务描述>"
 
 Session flow, in order:
 
-1. Bilibili tasks run a login preflight. State not ok stops the session
-   and prints 3 steps: export browser cookies to `temp/config/`, press
-   Enter, auto import plus recheck. Key never enters chat.
+1. Bilibili tasks run a login preflight. `login: false` stops the session and
+   prints 3 steps: export browser cookies, copy the file into `temp/config/`,
+   press Enter to recheck. Key never enters chat.
 2. Agent loop: `run_cli` (whitelist: `ihatevideos-input`, `ihatevideos-export`,
-   `ihatevideos-media`), `read_file` (project, temp, external readable),
-   `write_file` (`temp/` direct).
+   `ihatevideos-media`, `ihatevideos-download`, `ihatevideos-stt`), `read_file`
+   (project, temp, external readable), `write_file` (`temp/` direct).
 3. Writes outside `temp/` pause with a terminal y/n prompt. `y` approves,
    anything else rejects with a retry hint.
 4. Session ends printing one JSON: `session_dir`, `artifacts`, `status`,
@@ -54,8 +54,8 @@ Session flow, in order:
    else runs without pausing.
 4. Never invent artifact paths. Only paths printed by CLI output or the
    final JSON exist.
-5. No QR login path exists in this project. Cookie import is the only
-   login method.
+5. No QR login path exists in this project. Copying the browser-exported
+   cookies.txt into `temp/config/` is the only login method.
 
 ## Test prompts for this skill
 

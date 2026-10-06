@@ -41,6 +41,9 @@ outputs/
 exports/
 uploads/
 
+# Local model weights (large files, never commit)
+models/
+
 # Logs and temp
 *.log
 tmp/

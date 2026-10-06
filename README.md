@@ -9,8 +9,9 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 - `src/ihatevideos/summarize/`：LLM 总结。转录转总结 Markdown，评论转观点追加，与 Agent 共用根目录模型配置。
 - `src/ihatevideos/media/`：本地音视频处理。ffprobe 读流信息与时长，ffmpeg 取画面、剪切视频与音频、提取音轨与分块（`ihatevideos-media`）。
 - `src/ihatevideos/download/`：下载。aria2c 直链（多线程分段、断点续传、限速），yt-dlp 视频（格式与字幕清单、合流、抽音频、经 aria2c 加速与失败回退），`setup-binaries` 取回 uv 装不进来的 ffprobe（`ihatevideos-download`）。
+- `src/ihatevideos/stt/`：本地语音转写。Qwen3-ASR-1.7B 出文字，Qwen3-ForcedAligner-0.6B 出字级时间戳，句级结果直接交给 `ihatevideos-export`（`ihatevideos-stt`）。权重放工程根目录 `models/`，不进版本库。
 - `src/ihatevideos/agent/`：有监督 Agent（LangChain）。终端启动，按流程调用上面两个模块，写 temp 外暂停审批。
-- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`、`ihatevideos-summarize`、`ihatevideos-media`、`ihatevideos-download`）。
+- `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-agent`、`ihatevideos-summarize`、`ihatevideos-media`、`ihatevideos-download`、`ihatevideos-stt`）。
 - `.agents/skills/`：通用工具 Skills，只存本地，不提交。
 - `temp/`：中间结果、Cookie 文件，只存本地，不提交。
 
@@ -21,10 +22,24 @@ uv sync
 uv run ihatevideos-input detect "BV1xx411c7mD"
 uv run ihatevideos-export --help
 uv run ihatevideos-media probe "temp/media/<某个视频文件>"
+uv run ihatevideos-stt doctor
+uv run ihatevideos-stt transcribe "temp/media/<某个视频文件>" --gpu 0
 uv run ihatevideos-download engines
 uv run ihatevideos-download formats "https://www.bilibili.com/video/BV1xx411c7mD"
 uv run ihatevideos-download file "https://example.com/big.iso" --out-dir temp/download
 ```
+
+## 语音转写权重
+
+`ihatevideos-stt` 需要两份模型权重，体积大，不进版本库，首次使用前自己下载到工程根目录 `models/`：
+
+```bash
+uv run huggingface-cli download Qwen/Qwen3-ASR-1.7B --local-dir models/Qwen3-ASR-1.7B
+uv run huggingface-cli download Qwen/Qwen3-ForcedAligner-0.6B --local-dir models/Qwen3-ForcedAligner-0.6B
+```
+
+国内网络慢可以把 `huggingface-cli download` 换成 `modelscope download --model <模型名> --local_dir <目录>`。
+下完跑 `uv run ihatevideos-stt doctor`，`ready` 为 `true` 就能用。详细说明见 `skills/ihatevideos-stt/SKILL.md`。
 
 ## Agent
 
