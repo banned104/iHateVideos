@@ -24,7 +24,7 @@ from .models import (
     Check,
     one_line,
 )
-from .smoke import FFMPEG_STEPS, run_cuda_smoke, run_ffmpeg_smoke, run_model_smoke, work_dir
+from .smoke import FFMPEG_STEPS, run_cuda_smoke, run_dir, run_ffmpeg_smoke, run_model_smoke
 
 PROBE_TIMEOUT_SECONDS = 60
 LOGIN_TIMEOUT_SECONDS = 30.0
@@ -49,12 +49,20 @@ PYTHON_PACKAGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
 )
 
 
+def _has_module(name: str) -> bool:
+    # find_spec 在父包损坏时会抛出 ModuleNotFoundError，这里当成没有安装
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
 def _can_import(*names: str) -> bool:
-    return all(importlib.util.find_spec(name) is not None for name in names)
+    return all(_has_module(name) for name in names)
 
 
 def _missing_of(names: Sequence[str]) -> list[str]:
-    return [name for name in names if importlib.util.find_spec(name) is None]
+    return [name for name in names if not _has_module(name)]
 
 
 def _distribution_version(name: str) -> str | None:
@@ -95,7 +103,7 @@ def check_python() -> list[Check]:
     checks: list[Check] = []
     for module_name, dist_name, purpose, blocks in PYTHON_PACKAGES:
         version = _distribution_version(dist_name)
-        if importlib.util.find_spec(module_name) is None:
+        if not _has_module(module_name):
             checks.append(
                 Check(
                     "python",
@@ -261,12 +269,15 @@ def check_gpu(*, smoke: bool) -> list[Check]:
 
 def check_stt(work: Path, *, deep: bool) -> list[Check]:
     checks: list[Check] = []
+    ready = True
     for label, directory in (("识别模型", default_model_dir()), ("对齐器", default_aligner_dir())):
         name = f"{label}权重"
         report = describe_model_dir(directory)
         if not report["exists"]:
+            ready = False
             checks.append(Check("stt", name, MISSING, f"目录不存在：{report['path']}", STT_BLOCKS, MODEL_HINT))
         elif report["missing"]:
+            ready = False
             checks.append(
                 Check(
                     "stt",
@@ -278,15 +289,19 @@ def check_stt(work: Path, *, deep: bool) -> list[Check]:
                 )
             )
         elif not report["has_weights"]:
+            ready = False
             checks.append(
                 Check("stt", name, MISSING, f"{report['path']} 没有权重文件", STT_BLOCKS, MODEL_HINT)
             )
         else:
             checks.append(Check("stt", name, OK, report["path"]))
-    if deep:
-        checks += run_model_smoke(work)
-    else:
+    if not deep:
         checks.append(Check("stt", "模型加载", SKIP, "没有加 --deep"))
+    elif not ready:
+        # 权重没就绪时加载必然失败，这一条记成跳过，避免同一个原因报出两条必修
+        checks.append(Check("stt", "模型加载", SKIP, "权重没有就绪，跳过加载"))
+    else:
+        checks += run_model_smoke(work)
     return checks
 
 
@@ -387,19 +402,21 @@ def run_checks(
     groups: Sequence[str],
     smoke: bool = True,
     deep: bool = False,
+    work: Path | None = None,
 ) -> list[Check]:
-    work = work_dir(root)
+    work_path = Path(work) if work is not None else run_dir(root)
+    work_path.mkdir(parents=True, exist_ok=True)
     checks: list[Check] = []
     if "python" in groups:
         checks += check_python()
     if "binary" in groups:
         checks += check_binaries()
     if "ffmpeg" in groups:
-        checks += check_ffmpeg(work, smoke=smoke)
+        checks += check_ffmpeg(work_path, smoke=smoke)
     if "gpu" in groups:
         checks += check_gpu(smoke=smoke)
     if "stt" in groups:
-        checks += check_stt(work, deep=deep)
+        checks += check_stt(work_path, deep=deep)
     if "bilibili" in groups:
         checks += check_bilibili()
     if "network" in groups:

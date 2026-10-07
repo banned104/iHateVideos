@@ -145,3 +145,40 @@ def test_read_template_reports_available_names(tmp_path):
 def test_read_template_rejects_empty_name(tmp_path):
     with pytest.raises(SummarizeError):
         read_template("   ", tmp_path)
+
+
+def test_insert_images_accepts_another_supported_format(tmp_path):
+    md = tmp_path / "笔记.md"
+    md.write_text("<!-- FRAME: 00:12 | 结构图 -->\n", encoding="utf-8")
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "笔记-0012s.png").write_bytes(b"png")
+
+    result = insert_images(md, fmt="jpg")
+
+    assert result["missing"] == []
+    assert md.read_text(encoding="utf-8") == "![结构图](assets/笔记-0012s.png)\n"
+
+
+def test_insert_images_keeps_crlf_newlines(tmp_path):
+    md = tmp_path / "笔记.md"
+    md.write_bytes("正文\r\n\r\n<!-- FRAME: 00:12 -->\r\n".encode("utf-8"))
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "笔记-0012s.jpg").write_bytes(b"jpeg")
+
+    insert_images(md)
+
+    assert md.read_bytes().decode("utf-8") == "正文\r\n\r\n![](assets/笔记-0012s.jpg)\r\n"
+
+
+def test_insert_images_keeps_lf_newlines(tmp_path):
+    md = tmp_path / "笔记.md"
+    md.write_bytes("正文\n\n<!-- FRAME: 00:12 -->\n".encode("utf-8"))
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "笔记-0012s.jpg").write_bytes(b"jpeg")
+
+    insert_images(md)
+
+    assert md.read_bytes().decode("utf-8") == "正文\n\n![](assets/笔记-0012s.jpg)\n"

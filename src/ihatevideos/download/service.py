@@ -233,7 +233,8 @@ class DownloadService:
         task.out_dir = save_dir
         if task.filename is None:
             probed = engine.probe_filename(task.source, save_dir=save_dir)
-            task.filename = probed or name_from_url(task.source)
+            # 服务器给的 Content-Disposition 文件名可能带路径分隔符，先清洗再用
+            task.filename = sanitize_basename(probed or name_from_url(task.source))
         task.save_path = save_dir / task.filename
         task.touch_started()
         task.gid = engine.submit(

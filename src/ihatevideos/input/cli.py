@@ -1,23 +1,3 @@
-"""Command-line interface for the ``ihatevideos.input`` module.
-
-Independent entry point (no Agent needed)::
-
-    ihatevideos-input detect <url>
-    ihatevideos-input normalize <input>
-    ihatevideos-input ids <input>
-    ihatevideos-input ximalaya <url>
-    ihatevideos-input resolve (--url URL | --audio-path PATH) [options]
-    ihatevideos-input cookies
-    ihatevideos-input subtitle <bilibili-target> [--out-dir DIR]
-
-``resolve`` is the same contract the Skill uses: exactly one input in,
-``ResolvedInput`` out, printed as JSON on stdout. Anything that downloads
-audio or hits the network happens only in ``resolve`` (and Bilibili subtitle
-probe inside it); the other subcommands are pure offline parsing.
-``cookies`` checks the browser-exported Netscape cookies.txt dropped into
-``temp/config/`` against the Bilibili login API, no QR scan needed.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -159,10 +139,12 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
     subtitle = result.subtitle
     bvid = extract_bvid(args.target) or "subtitle"
     title, pubdate = "", ""
+    metadata_error: str | None = None
     try:
         metadata = get_video_metadata(bvid) if bvid != "subtitle" else None
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 — 元数据失败不影响字幕产物，记下原因交给调用方判断
         metadata = None
+        metadata_error = f"{type(exc).__name__}: {exc}"
     if metadata is not None:
         title, pubdate = metadata.title, metadata.pubdate
     session_dir = prepare_session_dir(
@@ -192,6 +174,7 @@ def _cmd_subtitle(args: argparse.Namespace) -> int:
             "meta_path": str(meta_path) if meta_path is not None else None,
             "cues": len(subtitle.items),
             "chars": len(subtitle.text),
+            "metadata_error": metadata_error,
             "skipped": None,
         }
     )
@@ -338,6 +321,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    # 中文路径与中文内容按 UTF-8 写出，Agent 侧按 UTF-8 读取命令行输出
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args))

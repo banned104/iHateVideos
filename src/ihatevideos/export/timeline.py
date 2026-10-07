@@ -1,7 +1,5 @@
-"""Extract timestamped timelines from summary tables.
+# Ported from bilibili2text b2t/summarize/timeline.py，只保留表格解析与时间轴提取
 
-Ported from bilibili2text ``b2t/summarize/timeline.py``.
-"""
 
 from __future__ import annotations
 
@@ -57,11 +55,14 @@ def remove_video_time_column(table_markdown: str) -> str:
     except ValueError:
         return table_markdown
 
+    width = len(_split_table_row(lines[0]))
     rendered_rows: list[str] = []
     for line in lines:
         cells = _split_table_row(line)
-        if time_index < len(cells):
-            del cells[time_index]
+        if len(cells) < width:
+            # 单元格少于表头的行补齐后再删列，各行剩下的列数才一致
+            cells += [""] * (width - len(cells))
+        del cells[time_index]
         rendered_rows.append("| " + " | ".join(cells) + " |")
     return "\n".join(rendered_rows).strip() + "\n"
 

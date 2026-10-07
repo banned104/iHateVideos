@@ -1,7 +1,4 @@
-"""URL platform detection and ID extraction.
-
-Ported from bilibili2text ``b2t/download/url_detect.py``.
-"""
+# Ported from bilibili2text b2t/download/url_detect.py
 
 import re
 from urllib.parse import SplitResult, urlsplit

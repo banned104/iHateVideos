@@ -1,9 +1,4 @@
-"""Platform abstraction: enum, metadata, and downloader interface.
-
-Ported from bilibili2text ``b2t/download/platform.py`` into the iHateVideos
-project as the ``ihatevideos.input`` module. Behaviour is unchanged; only the
-import path moved (``b2t.*`` -> ``ihatevideos.input.*``).
-"""
+# Ported from bilibili2text b2t/download/platform.py，行为不变，只改了导入路径
 
 import re
 import unicodedata

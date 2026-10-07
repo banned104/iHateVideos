@@ -1,10 +1,3 @@
-"""Mult-platform input module (belongs to the iHateVideos project).
-
-One import surface for the Agent:
-
-    from ihatevideos.input import resolve_input, detect_platform, Platform
-"""
-
 from .artifacts import (
     comment_artifact_paths,
     prepare_session_dir,

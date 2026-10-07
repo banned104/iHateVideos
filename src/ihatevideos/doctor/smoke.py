@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import time
 from pathlib import Path
 
 from ..media.audio import extract_audio
@@ -33,6 +34,8 @@ SAMPLE_HEIGHT = 240
 SAMPLE_FPS = 10
 TONE_HZ = 440
 SMOKE_TIMEOUT_SECONDS = 120
+# 加载两份权重最慢，给它单独一个上限
+MODEL_SMOKE_TIMEOUT_SECONDS = 600
 WORK_SUBDIR = ("temp", "doctor")
 FRAME_SECONDS = 0.5
 CLIP_SECONDS = 0.5
@@ -43,6 +46,18 @@ FFMPEG_STEPS = ("合成样片", "读流", "截 jpg", "截 png", "抽 wav", "剪�
 
 def work_dir(root: Path | str) -> Path:
     return Path(root).joinpath(*WORK_SUBDIR)
+
+
+def run_dir(root: Path | str, *, moment: str | None = None) -> Path:
+    # 每次运行各用一个子目录，--keep 留下的产物不会被下一次运行清掉
+    base = work_dir(root)
+    stamp = moment or time.strftime("%Y%m%d-%H%M%S")
+    candidate = base / stamp
+    index = 2
+    while candidate.exists():
+        candidate = base / f"{stamp}-{index}"
+        index += 1
+    return candidate
 
 
 def _size_text(path: Path) -> str:
@@ -189,7 +204,7 @@ def run_cuda_smoke() -> list[Check]:
     return [_cuda_step(index) for index in range(torch.cuda.device_count())]
 
 
-def run_model_smoke(work: Path) -> list[Check]:
+def run_model_smoke(work: Path, *, timeout: int = MODEL_SMOKE_TIMEOUT_SECONDS) -> list[Check]:
     """真正加载两份权重并用一段静音跑一次识别，这是最慢的一项检查。"""
     work.mkdir(parents=True, exist_ok=True)
     silence = work / "silence.wav"
@@ -207,7 +222,7 @@ def run_model_smoke(work: Path) -> list[Check]:
                 str(SILENCE_SECONDS),
                 str(silence),
             ],
-            timeout=SMOKE_TIMEOUT_SECONDS,
+            timeout=timeout,
         )
     except (MediaToolNotFound, FfmpegError) as exc:
         return [Check("stt", "模型加载", SKIP, f"造不出静音样本：{one_line(str(exc))}")]

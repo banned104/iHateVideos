@@ -91,7 +91,7 @@ clips/<主干名>_01m00s-01m10s_<参数摘要>.mp4
 ## 依赖
 
 系统 `ffmpeg` 与 `ffprobe`，Python 侧只用标准库。找不到可执行文件时立即报错并提示
-安装位置，不做兜底。
+安装位置。`probe` 读不到的字段（时长、码率、大小）填 0 继续，其余错误立即抛出。
 
 ## Test prompts for this skill
 

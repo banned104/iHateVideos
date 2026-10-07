@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .errors import ModelNotReady
+from .errors import ModelNotReady, SttError
 from .models import AlignUnit
 from .paths import default_aligner_dir, default_model_dir
 
@@ -13,6 +13,8 @@ DEFAULT_LANGUAGE = "Chinese"
 DEFAULT_MAX_NEW_TOKENS = 8192
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_DEVICE = "cuda:0"
+# 本机有两块卡，转写默认用第 1 块，把第 0 块留给别的任务
+DEFAULT_GPU_INDEX = 1
 _MODEL_MARKERS = ("config.json", "preprocessor_config.json")
 
 
@@ -78,6 +80,12 @@ def load_asr_model(
     max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
 ) -> tuple[Any, Path, Path | None]:
     import torch
+
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        raise SttError(
+            "没有可用的 CUDA 设备。只有一块显卡的机器请加 --gpu 0，"
+            "显卡被别的任务占满时换一块空闲的。"
+        )
     from qwen_asr import Qwen3ASRModel
 
     resolved_model = require_model_dir(model_dir or default_model_dir(), "识别模型")

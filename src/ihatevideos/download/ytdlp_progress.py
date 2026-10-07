@@ -94,7 +94,11 @@ def parse_output_line(line: str) -> ParsedLine | None:
     if selected is not None:
         return ParsedLine(kind="formats", formats=selected.group(1).strip())
     if len(text) >= 2 and text.startswith('"') and text.endswith('"'):
-        parsed = json.loads(text)
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            # yt-dlp 有时会打印被引号包住的普通信息行，解析不了就当普通输出
+            return None
         if isinstance(parsed, str) and RE_ABS_PATH.match(parsed):
             return ParsedLine(kind="destination", filepath=parsed)
         return None

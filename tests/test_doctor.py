@@ -3,8 +3,9 @@ import json
 import pytest
 
 from ihatevideos.doctor import GROUPS, Check, Report, parse_groups, render_json, render_text
-from ihatevideos.doctor.checks import run_checks
+from ihatevideos.doctor.checks import _missing_of, run_checks
 from ihatevideos.doctor.models import FAIL, MISSING, OK, SKIP, WARN, one_line
+from ihatevideos.doctor.smoke import run_dir
 
 
 def test_parse_groups_defaults_to_all():
@@ -116,3 +117,21 @@ def test_one_line_truncates_to_limit():
 def test_run_checks_only_runs_selected_groups(tmp_path):
     checks = run_checks(root=tmp_path, groups=["python"])
     assert {item.group for item in checks} == {"python"}
+
+
+def test_run_checks_creates_the_given_work_dir(tmp_path):
+    work = tmp_path / "doctor-run"
+    run_checks(root=tmp_path, groups=["python"], work=work)
+    assert work.is_dir()
+
+
+def test_run_dir_avoids_an_existing_name(tmp_path):
+    first = run_dir(tmp_path, moment="2026-10-08-120000")
+    first.mkdir(parents=True)
+    second = run_dir(tmp_path, moment="2026-10-08-120000")
+    assert second == first.parent / "2026-10-08-120000-2"
+
+
+def test_missing_of_handles_broken_parent_package():
+    # find_spec 对父包不存在的点号名字会抛 ModuleNotFoundError，这里要当成没安装
+    assert _missing_of(["nope.child"]) == ["nope.child"]

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..media.frames import SUPPORTED_FORMATS
 from ..media.timestamps import format_timestamp, parse_seconds
 from .paths import DEFAULT_FRAME_FORMAT, asset_path, asset_reference
 
@@ -53,6 +54,26 @@ def read_markdown(markdown_path: Path | str) -> tuple[Path, str]:
     return md, md.read_text(encoding="utf-8")
 
 
+def markdown_newline(markdown_path: Path | str) -> str:
+    # 原文用 CRLF 时写回也保持 CRLF，避免整篇换行被改写
+    raw = Path(markdown_path).read_bytes()
+    return "\r\n" if b"\r\n" in raw else "\n"
+
+
+def _existing_asset(md: Path, seconds: float, fmt: str) -> Path:
+    # 取帧与插入分两次执行，格式可能不一致，这里按支持的扩展名找已有图片
+    primary = asset_path(md, seconds, fmt)
+    if primary.is_file():
+        return primary
+    for other in SUPPORTED_FORMATS:
+        if other == fmt:
+            continue
+        candidate = asset_path(md, seconds, other)
+        if candidate.is_file():
+            return candidate
+    return primary
+
+
 def render_reference(caption: str, image_path: Path | str) -> str:
     return f"![{caption}]({asset_reference(image_path)})"
 
@@ -72,7 +93,7 @@ def insert_images(
 
     for item in find_placeholders(text):
         pieces.append(text[cursor : item.start])
-        image = asset_path(md, item.seconds, fmt)
+        image = _existing_asset(md, item.seconds, fmt)
         record = {
             "timestamp": format_timestamp(item.seconds),
             "seconds": item.seconds,
@@ -91,7 +112,7 @@ def insert_images(
 
     changed = updated != text
     if changed:
-        md.write_text(updated, encoding="utf-8")
+        md.write_text(updated, encoding="utf-8", newline=markdown_newline(md))
     return {
         "markdown": str(md),
         "changed": changed,

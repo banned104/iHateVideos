@@ -24,6 +24,8 @@ def _ends_sentence(piece: str) -> bool:
 def _clean_to_unit_index(text: str, units: Sequence[AlignUnit]) -> list[int | None]:
     # 识别文本带标点，时间戳模型只输出发音单元，这里把两者的字符位置逐个对上
     clean = [char for char in text if not _is_skippable(char)]
+    if not clean or not units:
+        return [None] * len(clean)
     units_text = "".join(unit.text for unit in units)
     char_to_unit: list[int] = []
     for index, unit in enumerate(units):
@@ -36,9 +38,45 @@ def _clean_to_unit_index(text: str, units: Sequence[AlignUnit]) -> list[int | No
             mapping[left] = char_to_unit[right]
             left += 1
             right += 1
+            continue
+        # 两边总有一边多出字符：先试时间戳模型多出来的那个，再试识别文本多出来的那个
+        if right + 1 < len(units_text) and units_text[right + 1] == clean[left]:
+            right += 1
+            continue
+        left += 1
+    return _fill_unmatched(mapping, len(units))
+
+
+def _fill_unmatched(mapping: list[int | None], unit_count: int) -> list[int | None]:
+    # 没对上的字符按左右两侧已知的单元序号插值，只有一侧有已知值时取那一侧
+    size = len(mapping)
+    index = 0
+    while index < size:
+        if mapping[index] is not None:
+            index += 1
+            continue
+        start = index
+        while index < size and mapping[index] is None:
+            index += 1
+        end = index
+        before = mapping[start - 1] if start > 0 else None
+        after = mapping[end] if end < size else None
+        if before is None and after is None:
+            # 一个都没对上：按字符位置在整个单元序列上均匀分配
+            for position in range(size):
+                mapping[position] = min(unit_count - 1, position * unit_count // size)
+            return mapping
+        if before is None:
+            for position in range(start, end):
+                mapping[position] = after
+        elif after is None:
+            for position in range(start, end):
+                mapping[position] = before
         else:
-            # 识别文本里有时间戳模型不认的字符，例如 C++ 的两个加号，跳过它
-            left += 1
+            span = end - start + 1
+            for position in range(start, end):
+                offset = position - start + 1
+                mapping[position] = int(round(before + (after - before) * offset / span))
     return mapping
 
 

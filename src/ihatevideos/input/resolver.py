@@ -1,16 +1,6 @@
-"""Unified multi-platform input resolver.
-
-This is the single entry point the Agent (and any future pipeline) calls.
-It merges the branching logic of bilibili2text
-``b2t/pipeline.py::_resolve_pipeline_input`` but stays decoupled from
-``AppConfig``/storage: callers pass a plain ``download_dir`` and get back a
-plain dataclass.
-
-Contract:
-    input: URL (bilibili/xiaoyuzhou/ximalaya) OR local audio file
-    output: ResolvedInput(audio_file | None, metadata | None, bvid,
-            transcription_id, subtitle | None, use_local_audio, platform)
-"""
+# 多平台输入解析的唯一入口：输入一个 URL 或本地音频文件，输出 ResolvedInput
+# 合并了 bilibili2text b2t/pipeline.py::_resolve_pipeline_input 的分支逻辑，
+# 但不依赖 AppConfig 与存储：调用方给一个 download_dir，拿回一个 dataclass
 
 from __future__ import annotations
 

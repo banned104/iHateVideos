@@ -78,10 +78,12 @@ def test_format_limit() -> None:
     assert format_limit(512) == "512K"
 
 
-def test_task_options_with_and_without_filename() -> None:
-    assert build_task_options(save_dir=r"C:\tmp") == {
+def test_task_options_omits_limit_when_unlimited() -> None:
+    # 任务级 max-download-limit 会盖掉启动参数里的全局限速，不限速时不能写这个键
+    assert build_task_options(save_dir=r"C:\tmp") == {"dir": r"C:\tmp"}
+    assert build_task_options(save_dir=r"C:\tmp", filename="a.dat") == {
         "dir": r"C:\tmp",
-        "max-download-limit": "0",
+        "out": "a.dat",
     }
     assert build_task_options(save_dir=r"C:\tmp", filename="a.dat", limit_kbps=64) == {
         "dir": r"C:\tmp",

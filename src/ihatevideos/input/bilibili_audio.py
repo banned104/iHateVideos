@@ -1,7 +1,4 @@
-"""Download Bilibili audio using yutto Python API (default implementation).
-
-Ported from bilibili2text ``b2t/download/yutto_api.py``.
-"""
+# Ported from bilibili2text b2t/download/yutto_api.py，改用 yutto 的 Python API 下载音频
 
 from __future__ import annotations
 
@@ -194,10 +191,16 @@ def download_audio(
         for path in _collect_audio_files(output_dir_path)
         if path.resolve() not in existing_files
     ]
+    if not audio_files and metadata is not None and metadata.title:
+        # yutto 见到同名文件会跳过下载，这时目录里标题对得上的那份才是本次的目标
+        audio_files = [
+            path for path in _collect_audio_files(output_dir_path) if path.stem == metadata.title
+        ]
     if not audio_files:
-        audio_files = _collect_audio_files(output_dir_path)
-    if not audio_files:
-        raise FileNotFoundError(f"No downloaded audio files found: {output_dir_path}")
+        raise FileNotFoundError(
+            f"这次没有下载到新的音频文件：{output_dir_path}。"
+            "若这份音频此前已经下过，请直接把已有文件作为本地音频输入"
+        )
 
     audio_file = audio_files[0]
     logger.info("Audio file: %s", audio_file)

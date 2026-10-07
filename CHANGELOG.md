@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## 0.8.1 — 2026-10-08
+
+- 修 `input`：B 站音频这次没有产出新文件时，不再拿目录里任意一份旧音频充当结果，只有标题对得上的那份会被复用。
+- 修 `download`：服务器 `Content-Disposition` 给的文件名先清洗再使用；不限速时任务级选项不再写 `max-download-limit`，`--global-limit` 恢复生效；yt-dlp 输出行解析失败不再让读取线程抛出异常。
+- 修 `media`：剪切产物文件名的时间标签保留到毫秒，`00m59.960s` 与 `01m00s` 不再共用一个名字。
+- 修 `stt`：`--gpu` 默认用第 1 块卡，只有一块卡时写 `--gpu 0`；没有可用 CUDA 设备时给出明确提示；字符与时间戳单元对不上时按左右两侧已知单元插值，句首句尾不再出现 0。
+- 修 `summarize`：`insert` 按支持的扩展名查找已有图片，取帧用了 png 也能插入；写回时保持原文换行。
+- 修 `export`：`markdownlint-cli2` 改用参数列表调用，不再拼接 shell 命令；表格删列时各行补齐到同一列数。
+- 修 `doctor`：权重没就绪时 `--deep` 只报一条必修；`--keep` 保留本次运行的 `temp/doctor/<时间>/`，下一次运行不再清掉它；模型加载有独立超时；`find_spec` 抛出异常时按未安装处理。
+- `export` 与 `input` 两个命令补上标准输出的 UTF-8 设置，中文不再按 GBK 写出。
+- 按工程约定去掉 `input`、`export` 两个模块文件开头的 docstring，出处信息改成注释。
+- `requires-python` 改成 `>=3.12`，与虚拟环境一致；补上工程描述。
+- 补测试：`media` 与 `export` 两个模块此前没有用例，现在有 `tests/test_media_timestamps.py` 与 `tests/test_export_timeline.py`；`stt`、`summarize`、`doctor`、`download` 各补了针对本次修复的用例，测试总数由 107 增至 128。
+
 ## 0.8.0 — 2026-10-08
 
 - 新增运行环境检查模块（`src/ihatevideos/doctor/`）与命令行 `ihatevideos-doctor`，一次把 Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站 cookies 与登录态、系统代理查一遍。

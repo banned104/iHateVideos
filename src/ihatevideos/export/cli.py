@@ -1,19 +1,3 @@
-"""Command-line interface for the ``ihatevideos.export`` module.
-
-Independent entry point (no Agent needed)::
-
-    ihatevideos-export json2md <transcription.json> [--min-length N] [-o OUT]
-    ihatevideos-export table <summary.md> [--keep-time]
-    ihatevideos-export timeline <summary.md>
-
-Exit codes (for Agent judgement):
-    0 = produced a file (path in JSON stdout)
-    3 = skipped normally: no table in file, or no parseable video times
-        (NOT a failure — continue the workflow without that artifact)
-    2 = bad input (missing file, bad args)
-    1 = unexpected failure
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -98,6 +82,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ihatevideos-export",
         description="iHateVideos layer-1 exports: transcription.json -> md, summary.md -> table/timeline.",
+        epilog=(
+            "退出码：0 产出了文件（路径在 JSON stdout）· 3 正常跳过（文件里没有表格，"
+            "或没有能解析的视频时间）· 2 输入不合法（文件不存在、参数写错）· 1 未预期失败"
+        ),
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -120,6 +108,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    # 中文路径与中文内容按 UTF-8 写出，Agent 侧按 UTF-8 读取命令行输出
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args))

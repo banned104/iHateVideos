@@ -1,9 +1,5 @@
-"""Markdown table block extraction.
-
-Ported from bilibili2text ``b2t/summarize/llm.py`` (pure helpers only:
-``_extract_markdown_table_blocks`` + ``extract_markdown_table_block``).
-The LLM-calling parts of ``llm.py`` are intentionally NOT ported.
-"""
+# Ported from bilibili2text b2t/summarize/llm.py，只取表格解析的两个纯函数
+# 调用大模型的部分不移植
 
 import logging
 import re

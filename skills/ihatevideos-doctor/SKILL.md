@@ -35,7 +35,7 @@ uv run ihatevideos-doctor [--only GROUP[,GROUP...]] [--no-smoke] [--deep] [--jso
 | `--no-smoke` | 不跑烟测，只做位置与版本解析 |
 | `--deep` | 额外真正加载两份权重并跑一次识别（慢，几分钟） |
 | `--json` | 输出 JSON，供上层 Agent 读取 |
-| `--keep` | 保留 `temp/doctor/` 里的烟测产物 |
+| `--keep` | 保留本次运行的 `temp/doctor/<时间>/` 产物；不加时本次产物在退出前删掉 |
 
 ## 分组与检查项
 
@@ -49,7 +49,7 @@ uv run ihatevideos-doctor [--only GROUP[,GROUP...]] [--no-smoke] [--deep] [--jso
 | `bilibili` | cookies 文件、B 站可达、登录态 |
 | `network` | 系统代理 |
 
-烟测的做法是用 `lavfi` 现造 1 秒样片，真的走一遍取帧、抽音频、剪切。判定看**产物**（文件存在、字节大于 0、能被读回），不看 ffmpeg 打印的提示文本——提示文本里有警告但产物正常是常见情况。
+烟测的做法是用 `lavfi` 现造 1 秒样片，真的走一遍取帧、抽音频、剪切。判定看**产物**（文件存在、字节大于 0），读流那一步还会真的解析出时长与编码；不看 ffmpeg 打印的提示文本——提示文本里有警告但产物正常是常见情况。
 
 CUDA 烟测在每块卡上做一次全 1 矩阵乘并比对结果。`torch.cuda.is_available()` 只回答「有没有卡」，回答不了「这块卡能不能真算」。
 
@@ -119,15 +119,15 @@ binary  外部程序
 | `python` 组有 `missing` | 让用户跑 `uv sync`，不要自己装包 |
 | `stt` 组权重 `missing` | 让用户按 `skills/ihatevideos-stt/SKILL.md` 下载权重，doctor 不下载 |
 | 想快一点 | `--no-smoke`，跳过全部需要真跑的检查 |
-| 要确认模型真能加载 | 加 `--deep`，会加载两份权重并用 1 秒静音跑一次识别 |
-| 想看烟测产物 | 加 `--keep`，产物留在 `temp/doctor/` |
+| 要确认模型真能加载 | 加 `--deep`，会加载两份权重并用 1 秒静音跑一次识别；权重没就绪时这一项记 `skip` |
+| 想看烟测产物 | 加 `--keep`，产物留在本次运行的 `temp/doctor/<时间>/` 里 |
 
 ## 退出码
 
 - `0` 必修项齐备（选修缺也返回 `0`）
 - `3` 有必修项 `missing` 或 `fail`
 - `2` 参数写错（`--only` 给了不存在的分组）
-- `1` doctor 自身抛出未预期异常
+- `1` doctor 自身抛出未预期异常（这时直接给出回溯，`--json` 拿不到结构化结果）
 
 ## 回给上层
 

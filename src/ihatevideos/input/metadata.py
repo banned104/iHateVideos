@@ -1,7 +1,4 @@
-"""Fetch Bilibili video metadata.
-
-Ported from bilibili2text ``b2t/download/metadata.py``.
-"""
+# Ported from bilibili2text b2t/download/metadata.py
 
 from __future__ import annotations
 

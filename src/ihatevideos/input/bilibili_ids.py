@@ -1,9 +1,5 @@
-"""Bilibili BV ID extraction and target normalization.
-
-Extracted from bilibili2text ``b2t/download/yutto_cli.py`` (pure helpers only).
-The legacy subprocess-based ``download_audio`` is NOT ported; audio download
-lives in ``bilibili_audio.py`` (yutto Python API).
-"""
+# Extracted from bilibili2text b2t/download/yutto_cli.py，只保留纯函数
+# 音频下载在 bilibili_audio.py 里用 yutto 的 Python API 完成
 
 import logging
 import re

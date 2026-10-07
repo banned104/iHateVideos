@@ -10,6 +10,7 @@ from ..media.ffmpeg import FfmpegError, MediaToolNotFound
 from .engine import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_DEVICE,
+    DEFAULT_GPU_INDEX,
     DEFAULT_LANGUAGE,
     DEFAULT_MAX_NEW_TOKENS,
     configure_gpu,
@@ -102,8 +103,12 @@ def build_parser() -> argparse.ArgumentParser:
     transcribe_parser = subparsers.add_parser("transcribe", help="转写一个音视频文件")
     transcribe_parser.add_argument("input", help="本地音视频路径，视频会先抽成 16 kHz 单声道 wav")
     transcribe_parser.add_argument("--language", default=DEFAULT_LANGUAGE, help="语言提示，默认 Chinese")
-    transcribe_parser.add_argument("--gpu", type=int, default=None, help="只使用第 N 块 GPU")
-    transcribe_parser.add_argument("--device", default=DEFAULT_DEVICE, help="torch 设备名，默认 cuda:0")
+    transcribe_parser.add_argument(
+        "--gpu", type=int, default=DEFAULT_GPU_INDEX, help="只使用第 N 块 GPU，默认第 1 块"
+    )
+    transcribe_parser.add_argument(
+        "--device", default=DEFAULT_DEVICE, help="torch 设备名；写进 CUDA_VISIBLE_DEVICES 之后索引重新编号"
+    )
     transcribe_parser.add_argument("--model-dir", default=None, help="识别模型目录，默认 models/Qwen3-ASR-1.7B")
     transcribe_parser.add_argument("--aligner-dir", default=None, help="时间戳模型目录")
     transcribe_parser.add_argument("--no-timestamps", action="store_true", help="不加载时间戳模型，只出整段文本")

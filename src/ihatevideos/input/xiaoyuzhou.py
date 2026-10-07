@@ -1,5 +1,3 @@
-"""Xiaoyuzhou FM downloader — extract metadata and audio from episode pages."""
-
 import json
 import logging
 import re

@@ -59,12 +59,12 @@ def format_seconds_label(seconds: float) -> str:
 
 
 def format_clip_label(seconds: float) -> str:
-    # 剪切产物文件名里的时间标签：00m30s / 01h02m03s，不足一秒的部分保留一位小数
-    total = round(float(seconds), 1)
+    # 剪切产物文件名里的时间标签：00m30s / 00m59.960s / 01h02m03s
+    total = round(float(seconds), 3)
     hours = int(total // 3600)
     minutes = int((total % 3600) // 60)
-    secs = round(total % 60, 1)
-    secs_text = f"{int(secs):02d}" if float(secs).is_integer() else f"{secs:04.1f}"
+    secs = round(total % 60, 3)
+    secs_text = f"{int(secs):02d}" if float(secs).is_integer() else f"{secs:06.3f}"
     if hours:
         return f"{hours:02d}h{minutes:02d}m{secs_text}s"
     return f"{minutes:02d}m{secs_text}s"

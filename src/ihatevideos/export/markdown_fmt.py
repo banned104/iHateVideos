@@ -1,5 +1,3 @@
-"""Markdown formatting utility"""
-
 import logging
 import shutil
 import subprocess
@@ -11,19 +9,14 @@ logger = logging.getLogger(__name__)
 def format_markdown_with_markdownlint(md_path: Path | str) -> None:
     """Format a Markdown file using markdownlint-cli2
 
-    This function automatically fixes common Markdown formatting issues, including:
-    - Missing blank lines before tables
-    - Table column alignment issues
-    - Trailing whitespace
-    - And more
+    自动修掉表格前缺空行、行尾空格、表格列宽一类的常见问题。
 
     Args:
         md_path: Markdown file path
 
     Note:
-        - Skips silently if markdownlint-cli2 is not installed
-        - Continues even if markdownlint reports errors (uses || true)
-        - Certain configuration warnings are ignored (e.g. line length limits)
+        - markdownlint-cli2 不在 PATH 上时直接跳过
+        - 工具报出的规则问题不影响产物，只记日志
     """
     md_path = Path(md_path)
 
@@ -35,20 +28,23 @@ def format_markdown_with_markdownlint(md_path: Path | str) -> None:
         logger.debug("markdownlint-cli2 not installed, skipping Markdown formatting")
         return
 
-    try:
-        # Use || true to ignore errors, as some configuration warnings are not relevant
-        # For example: MD013 (line length limits), MD060 (table column alignment), etc.
-        subprocess.run(
-            f'markdownlint-cli2 --fix "{md_path}" || true',
-            shell=True,
-            check=False,
-            capture_output=True,
-            text=True,
-            cwd=md_path.parent,
+    completed = subprocess.run(
+        ["markdownlint-cli2", "--fix", str(md_path)],
+        check=False,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=md_path.parent,
+    )
+    if completed.returncode != 0:
+        # 报出来的多是行长、表格列宽一类的规则，不影响产物，记一行日志继续
+        logger.debug(
+            "markdownlint-cli2 退出码 %s：%s",
+            completed.returncode,
+            (completed.stdout or "").strip(),
         )
+    else:
         logger.debug("Formatted with markdownlint-cli2: %s", md_path)
-    except Exception as e:
-        logger.debug("markdownlint-cli2 run failed, ignored: %s", e)
 
 
 def batch_format_markdown(directory: Path | str, pattern: str = "*.md") -> int:

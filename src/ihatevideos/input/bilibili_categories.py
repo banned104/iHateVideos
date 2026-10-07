@@ -1,5 +1,3 @@
-"""Local snapshot of Bilibili's video partition taxonomy."""
-
 # A tid is an opaque identifier; its numeric value does not encode hierarchy.
 BILIBILI_TID_TO_TNAME: dict[int, str] = {
     1: "动画",

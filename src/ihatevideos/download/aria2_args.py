@@ -100,7 +100,10 @@ def build_start_args(
 def build_task_options(
     *, save_dir: Path | str, filename: str | None = None, limit_kbps: int | None = None
 ) -> dict[str, str]:
-    options = {"dir": str(save_dir), "max-download-limit": format_limit(limit_kbps)}
+    # 不限速时不写这个键：任务级选项会盖掉启动参数里的全局限速
+    options = {"dir": str(save_dir)}
+    if limit_kbps and limit_kbps > 0:
+        options["max-download-limit"] = format_limit(limit_kbps)
     if filename:
         options["out"] = filename
     return options
