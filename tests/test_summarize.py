@@ -6,6 +6,7 @@ from ihatevideos.summarize import (
     SummarizeError,
     asset_path,
     asset_reference,
+    asset_stem,
     assets_dir,
     find_placeholder_seconds,
     find_placeholders,
@@ -33,6 +34,17 @@ def test_asset_path_sits_next_to_markdown():
 def test_asset_reference_uses_forward_slash_and_name_only():
     image = Path("temp/notes/assets/en-0012s.jpg")
     assert asset_reference(image) == "assets/en-0012s.jpg"
+
+
+def test_asset_stem_replaces_whitespace_in_note_name():
+    md = Path("temp/notes/Computer Use 是什么.md").resolve()
+    assert asset_stem(md) == "Computer-Use-是什么"
+    assert asset_path(md, 150).name == "Computer-Use-是什么-0230s.jpg"
+
+
+def test_asset_reference_escapes_characters_that_break_links():
+    image = Path("temp/notes/assets/C# 入门 100%.jpg")
+    assert asset_reference(image) == "assets/C%23%20入门%20100%25.jpg"
 
 
 def test_find_placeholders_reads_time_and_caption():
@@ -72,6 +84,22 @@ def test_insert_images_replaces_placeholder_when_image_exists(tmp_path):
     assert result["changed"] is True
     assert result["missing"] == []
     assert md.read_text(encoding="utf-8") == "正文\n\n![结构图](assets/函数对象-0012s.jpg)\n"
+
+
+def test_insert_images_writes_reference_without_spaces(tmp_path):
+    md = tmp_path / "Computer Use 是什么.md"
+    md.write_text("正文\n\n<!-- FRAME: 02:30 | 别墅 -->\n", encoding="utf-8")
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "Computer-Use-是什么-0230s.jpg").write_bytes(b"jpeg")
+
+    result = insert_images(md)
+
+    assert result["missing"] == []
+    assert (
+        md.read_text(encoding="utf-8")
+        == "正文\n\n![别墅](assets/Computer-Use-是什么-0230s.jpg)\n"
+    )
 
 
 def test_insert_images_keeps_placeholder_when_image_missing(tmp_path):

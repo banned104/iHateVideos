@@ -64,7 +64,8 @@ uv run ihatevideos-summarize insert <笔记> [--format jpg|png]
 
 ## 产物
 
-`frames` 把画面取到 Markdown 同级的 `assets/`，图片名是 `<笔记文件名>-<MMSS>s.<格式>`：
+`frames` 把画面取到 Markdown 同级的 `assets/`，图片名是 `<笔记文件名>-<MMSS>s.<格式>`，
+笔记名里的空白会换成短横线，图片名里不出现空格：
 
 ```
 temp/2026-10-08-函数对象-BV1SLaZ6FEeL/
@@ -74,7 +75,8 @@ temp/2026-10-08-函数对象-BV1SLaZ6FEeL/
     函数对象-0130s.jpg
 ```
 
-整个文件夹可以直接拖进 Obsidian，图片引用是相对路径加正斜杠，换电脑、换目录都不会断。
+整个文件夹可以直接拖进 Obsidian，图片引用是相对路径加正斜杠，图片名里不出现空格，换电脑、换目录都不会断。
+链接目标里其余的 `#`、`?`、`%` 会写成 `%23`、`%3F`、`%25`。
 
 `insert` 原地改写 Markdown（覆盖写），把占位符换成 `![图注](assets/xxx.jpg)`，**不可重复执行**：
 第二次跑时已经没有占位符，什么都不会发生。

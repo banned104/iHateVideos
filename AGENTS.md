@@ -1,4 +1,4 @@
-# AGENTS.md — SLMaster 工作约定（每会话必读）
+# AGENTS.md — 工作约定（每会话必读）
 
 ## 项目
 
