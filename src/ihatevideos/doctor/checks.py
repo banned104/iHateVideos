@@ -28,7 +28,8 @@ from .smoke import FFMPEG_STEPS, run_cuda_smoke, run_dir, run_ffmpeg_smoke, run_
 
 PROBE_TIMEOUT_SECONDS = 60
 LOGIN_TIMEOUT_SECONDS = 30.0
-COOKIES_HINT = "从浏览器导出一份 cookies.txt 放进 temp/config/"
+# 与 input.cookies 的 COOKIES_EXPORT_HINT 是同一句话；doctor 不能在导入期读 input
+COOKIES_HINT = "用 Chrome 插件「Get cookies.txt LOCALLY」导出一份 cookies.txt 放进 temp/config/"
 # ihatevideos.download 与 ihatevideos.input 的 __init__ 会在导入期拉起全部子模块，
 # 先把它们需要的第三方包查清楚，缺了就不导入，doctor 才能在环境残缺时照常给出报告
 DOWNLOAD_REQUIREMENTS = ("aria2c", "imageio_ffmpeg", "aria2p", "requests", "httpx")

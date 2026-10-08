@@ -15,7 +15,12 @@ from bilibili_api.utils import network as bili_network
 from bilibili_api.utils.network import Credential
 
 from .bilibili_ids import extract_bilibili_page, extract_bvid
-from .cookies import BILIBILI_USER_AGENT, config_dir, credential_data
+from .cookies import (
+    BILIBILI_USER_AGENT,
+    COOKIES_EXPORT_HINT,
+    config_dir,
+    credential_data,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +204,7 @@ async def _fetch_subtitle_async(target: str) -> SubtitleResult:
     if not credential.sessdata:
         return SubtitleResult(
             None,
-            f"没有可用的 cookies 文件，把导出的 cookies.txt 复制到 {config_dir()}",
+            f"没有可用的 cookies 文件，{COOKIES_EXPORT_HINT} 复制到 {config_dir()}",
         )
 
     client = video.Video(bvid=bvid, credential=credential)
@@ -291,7 +296,7 @@ def fetch_bilibili_subtitle(target: str, *, timeout_seconds: int = 60) -> Subtit
         return SubtitleResult(None, f"获取 B站字幕超时（{timeout_seconds} 秒）")
     except CredentialNoSessdataException:
         return SubtitleResult(
-            None, f"B站 cookies 缺少 sessdata，重新从浏览器导出一份放到 {config_dir()}"
+            None, f"B站 cookies 缺少 sessdata，{COOKIES_EXPORT_HINT} 覆盖掉 {config_dir()} 里那份"
         )
     except ResponseCodeException as exc:
         return SubtitleResult(None, describe_api_error(exc))

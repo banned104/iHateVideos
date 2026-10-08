@@ -114,7 +114,7 @@ binary  外部程序
 | 有 `blockers` | 停下，把每项的 `name`、`detail`、`hint` 报给用户，等用户处理 |
 | 有 `warnings` | 继续做，但在回答里提一句 |
 | `ffmpeg 一致性` 是 `warn` | 说明取帧与下载用的是两份 ffmpeg。本机正常情况下就是两份，不必强求统一；只在出现取帧或合并异常时才当作线索 |
-| `登录态` 是 `warn` | cookies 过期了，`ihatevideos-input` 的字幕与评论会拿不到。让用户重新导出一份覆盖 `temp/config/` |
+| `登录态` 是 `warn` | cookies 过期了，`ihatevideos-input` 的字幕与评论会拿不到。让用户用 Chrome 插件 Get cookies.txt LOCALLY 重新导出一份覆盖 `temp/config/` |
 | `B 站可达` 是 `fail` | 网络或代理不通。先看 `network` 组的代理，再让用户检查网络 |
 | `python` 组有 `missing` | 让用户跑 `uv sync`，不要自己装包 |
 | `stt` 组权重 `missing` | 让用户按 `skills/ihatevideos-stt/SKILL.md` 下载权重，doctor 不下载 |

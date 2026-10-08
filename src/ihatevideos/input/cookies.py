@@ -19,6 +19,8 @@ NAV_URL = "https://api.bilibili.com/x/web-interface/nav"
 LOGIN_CHECK_TIMEOUT_SECONDS = 30.0
 # 目录里可能混进别的大文件，超过这个大小就不当 cookies 试解析
 MAX_COOKIES_FILE_BYTES = 1024 * 1024
+# 提示用户用什么导出 cookies；CLI 各处的提示都引用这一句
+COOKIES_EXPORT_HINT = "用 Chrome 插件「Get cookies.txt LOCALLY」导出一份 cookies.txt"
 
 
 def config_dir() -> Path:
@@ -117,7 +119,7 @@ def verify_login(timeout_seconds: float = LOGIN_CHECK_TIMEOUT_SECONDS) -> tuple[
     """用当前 cookies 调一次 B站 nav 接口，确认登录态在服务端是否仍然有效。"""
     data = credential_data()
     if not data.get(REQUIRED_COOKIE):
-        return False, f"没有可用的 cookies 文件，把导出的 cookies.txt 复制到 {config_dir()}"
+        return False, f"没有可用的 cookies 文件，{COOKIES_EXPORT_HINT} 复制到 {config_dir()}"
     headers = {
         "User-Agent": BILIBILI_USER_AGENT,
         "Referer": "https://www.bilibili.com/",
@@ -134,5 +136,5 @@ def verify_login(timeout_seconds: float = LOGIN_CHECK_TIMEOUT_SECONDS) -> tuple[
         return False, f"B站返回错误 {payload.get('code')}：{payload.get('message', '')}"
     body = payload.get("data") or {}
     if not body.get("isLogin"):
-        return False, "这份 cookies 在 B站已经失效，重新从浏览器导出一份"
+        return False, f"这份 cookies 在 B站已经失效，{COOKIES_EXPORT_HINT} 重新导出一份"
     return True, str(body.get("uname") or "已登录")

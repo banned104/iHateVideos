@@ -122,14 +122,15 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 6. **Errors are typed:** `ValueError` = bad/unsupported input (ask user for a
    new link); `FileNotFoundError` = missing local file or zero downloads;
    `RuntimeError` = platform API failure (retry once, then report).
-7. **Bilibili login state first.** The user drops the browser-exported
-   Netscape `cookies.txt` into `temp/config/` (any name; the newest file with
-   SESSDATA wins). Run `uv run ihatevideos-input cookies`: exit 0 with
-   `login: true` means proceed. Exit 3 means stop and read `detail` — it
-   names the cause (no file, no usable file in the directory, a Bilibili
-   error code, or cookies the server no longer accepts); ask the user to
-   re-export into the same directory and re-run. Never ask the user to paste
-   SESSDATA into chat; secrets stay in local files.
+7. **Bilibili login state first.** The user installs the Chrome extension
+   "Get cookies.txt LOCALLY", exports a Netscape `cookies.txt`, and drops it
+   into `temp/config/` (any name; the newest file with SESSDATA wins). Run
+   `uv run ihatevideos-input cookies`: exit 0 with `login: true` means
+   proceed. Exit 3 means stop and read `detail` — it names the cause (no
+   file, no usable file in the directory, a Bilibili error code, or cookies
+   the server no longer accepts); ask the user to re-export into the same
+   directory and re-run. Never ask the user to paste SESSDATA into chat;
+   secrets stay in local files.
 8. **Comments are optional and Bilibili-only.** Fetch them only when the
    orchestrator needs audience viewpoints (`comments --limit 10
    --reply-limit 10`: 10 hot top-level comments, each with up to 10 child
@@ -179,7 +180,7 @@ uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text +
 
 ## Test prompts for this skill
 
-1. "B站字幕端到端：把导出的 cookies.txt 复制到 `temp/config/`，跑 `cookies` 确认 `login: true`，再 `subtitle` 写出文件，报三条路径。"
+1. "B站字幕端到端：用 Chrome 插件 Get cookies.txt LOCALLY 导出的 cookies.txt 复制到 `temp/config/`，跑 `cookies` 确认 `login: true`，再 `subtitle` 写出文件，报三条路径。"
 2. "把这个 B站链接接进来：`https://www.bilibili.com/video/BV1xx411c7mD?p=2`，告诉我有没有原生字幕、音频在哪、resource_id 是什么。"
 3. "用户传了一个文件 `uploads/BV1xx411c7mD_访谈.m4a`，按本地输入走，不要联网。"
 4. "这个能接吗：`https://www.ximalaya.com/album/12345`？不能的话说明原因并索要单集链接。"

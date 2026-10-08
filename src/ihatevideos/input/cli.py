@@ -12,7 +12,7 @@ from .bilibili_ids import (
     extract_bvid,
     normalize_bilibili_target,
 )
-from .cookies import credential_status, verify_login
+from .cookies import COOKIES_EXPORT_HINT, credential_status, verify_login
 from .resolver import resolve_input
 from .subtitle import fetch_bilibili_subtitle
 from .url_detect import detect_platform
@@ -96,9 +96,9 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
 
 def _cookie_hint(status: dict) -> str:
     if status["state"] == "missing":
-        return f"把浏览器导出的 cookies.txt 复制到 {status['dir']}"
+        return f"{COOKIES_EXPORT_HINT} 复制到 {status['dir']}"
     files = "、".join(status.get("files", []))
-    return f"{status['dir']} 里没有可用的 cookies 文件（现有：{files}）"
+    return f"{status['dir']} 里没有可用的 cookies 文件（现有：{files}），{COOKIES_EXPORT_HINT} 复制进去"
 
 
 def _cmd_cookies(args: argparse.Namespace) -> int:
