@@ -42,6 +42,7 @@ class PlatformComment:
     ctime: str
     ctime_timestamp: int
     is_up_reply: bool = False
+    pictures: tuple[str, ...] = ()
     replies: tuple["PlatformComment", ...] = ()
 
 
@@ -98,6 +99,19 @@ def _format_ctime(timestamp: int) -> str:
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _parse_pictures(value: Any) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    urls: list[str] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        src = str(item.get("img_src") or "").strip()
+        if src:
+            urls.append(src)
+    return tuple(urls)
+
+
 def _parse_comment(raw: dict[str, Any], *, up_uid: int) -> PlatformComment:
     member = raw.get("member")
     if not isinstance(member, dict):
@@ -117,6 +131,7 @@ def _parse_comment(raw: dict[str, Any], *, up_uid: int) -> PlatformComment:
         ctime=_format_ctime(ctime_timestamp),
         ctime_timestamp=ctime_timestamp,
         is_up_reply=up_uid > 0 and author_uid == up_uid,
+        pictures=_parse_pictures(content.get("pictures")),
     )
 
 
@@ -394,6 +409,7 @@ async def _fetch_bilibili_comments_wbi(
                         ctime=comment.ctime,
                         ctime_timestamp=comment.ctime_timestamp,
                         is_up_reply=comment.is_up_reply,
+                        pictures=comment.pictures,
                         replies=replies,
                     )
                 )
@@ -500,6 +516,7 @@ async def _fetch_bilibili_comments_legacy(
                         ctime=comment.ctime,
                         ctime_timestamp=comment.ctime_timestamp,
                         is_up_reply=comment.is_up_reply,
+                        pictures=comment.pictures,
                         replies=replies,
                     )
                 )
@@ -611,6 +628,10 @@ def comments_to_markdown(bundle: PlatformCommentBundle) -> str:
         lines.append("")
         message = f"**{comment.message}**" if comment.is_up_reply else comment.message
         lines.append(message or "(空评论)")
+        if comment.pictures:
+            for url in comment.pictures:
+                lines.append(f"![评论图片]({url})")
+            lines.append("")
         lines.append("")
         if comment.replies:
             lines.append("子评论：")
@@ -622,6 +643,8 @@ def comments_to_markdown(bundle: PlatformCommentBundle) -> str:
                 lines.append(
                     f"- {reply_prefix}{reply.author}（点赞 {reply.like}）：{reply_message or '(空评论)'}"
                 )
+                for url in reply.pictures:
+                    lines.append(f"  ![评论图片]({url})")
             lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
