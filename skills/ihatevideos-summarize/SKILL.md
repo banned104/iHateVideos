@@ -17,6 +17,7 @@ description: 把视频或音频变成图文并茂的 Markdown 笔记。给一个
 - 要把一次会议的录屏写成带决议和行动项的记录 → `template meeting`
 - 要把视频里的图表、代码、幻灯片放进笔记 → 在正文里留占位符，然后 `frames` 加 `insert`
 - 不知道自己手上有哪些模板 → `templates`
+- 用户没说清笔记要写成什么样 → 读 `questions.md`，先问一遍再动笔
 - 想加一套自己的写作格式 → 往工程根目录 `templates/` 里加 `.md`
 
 ## 模块位置
@@ -24,6 +25,7 @@ description: 把视频或音频变成图文并茂的 Markdown 笔记。给一个
 - 代码：`src/ihatevideos/summarize/`（`templates.py` 读模板、`capture.py` 取画面、
   `insert.py` 找占位符与替换引用、`paths.py` 路径与图片命名、`cli.py` 命令行）
 - 模板：工程根目录 `templates/`，随仓库提交，三套：`study-notes`、`podcast`、`meeting`
+- 问询单：`questions.md`，与 `SKILL.md` 同级，写笔记之前要问用户的问题，工具不读它
 - 在项目根目录用 `uv run ihatevideos-summarize ...` 调用
 - 取画面复用 `ihatevideos-media` 的 ffmpeg 封装，不重复实现
 
@@ -148,23 +150,25 @@ temp/2026-10-08-函数对象-BV1SLaZ6FEeL/
 
 ## 完整流程
 
-1. `uv run ihatevideos-summarize templates`，看有哪些模板。
-2. `uv run ihatevideos-summarize template study-notes`，拿到模板正文，照它的结构写。
-3. 读转写结果（`temp/stt/<主干名>/export.md` 或 `transcription.json`），写笔记，存成
+1. 读 `questions.md`，按里面的问题问用户一遍，拿到答案再动笔。用户已经说清的部分不用问。
+2. `uv run ihatevideos-summarize templates`，看有哪些模板。
+3. `uv run ihatevideos-summarize template study-notes`，拿到模板正文，照它的结构写。
+4. 读转写结果（`temp/stt/<主干名>/export.md` 或 `transcription.json`），写笔记，存成
    `temp/<日期>-<标题>-<BV号>/<标题>.md`，在关键位置留下 `<!-- FRAME: 时间 | 图注 -->`。
-4. `uv run ihatevideos-summarize frames "<视频路径>" --md "<笔记路径>"`。
-5. `uv run ihatevideos-summarize insert "<笔记路径>"`。
-6. 读 `insert` 的输出：`inserted` 是成功的，`missing` 非空就按时间点调整正文里的占位符后重跑第 4、5 步。
+5. `uv run ihatevideos-summarize frames "<视频路径>" --md "<笔记路径>"`。
+6. `uv run ihatevideos-summarize insert "<笔记路径>"`。
+7. 读 `insert` 的输出：`inserted` 是成功的，`missing` 非空就按时间点调整正文里的占位符后重跑第 5、6 步。
 
 ## Agent 判断
 
 | 情况 | 动作 |
 |---|---|
 | 还没写正文 | 先 `templates` 加 `template`，拿到模板再动笔，不要凭印象自己造结构 |
+| 用户没说笔记要写成什么样 | 先读 `questions.md` 问一遍；用户下达任务时已经说清（要图、要补充、给谁看）就不用再问 |
 | 不知道这集讲了什么内容 | 先要转写结果；本 Skill 不读视频内容，只看你写好的正文里的时间点 |
 | 判断不了哪一帧值得留 | 用一个能说出内容的时间点，图注写清楚这一帧在讲什么；不要留整分钟采样的帧 |
 | 一集 30 分钟的教学视频 | 3 到 8 张合适 |
-| 一次两小时的会议 | 5 到 12 张，集中在分享屏幕的段落 |
+| 一次两小时的会议 | 5 到 12 张，集中在分享屏幕的分段 |
 | 纯音频播客 | 不写任何占位符，跳过 `frames` 和 `insert` |
 | `insert` 的 `missing` 非空 | 看 `timestamp`，多半超出视频长度；改成视频内的准确时间点，重跑 `frames` 与 `insert` |
 | 正文被 `insert` 改过，想再改文字 | 直接改 Markdown 里的 `![](...)`，没有占位符可用了 |
