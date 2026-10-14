@@ -372,7 +372,12 @@ def check_bilibili(*, timeout: float = LOGIN_TIMEOUT_SECONDS) -> list[Check]:
         )
     else:
         checks.append(
-            Check("bilibili", "cookies 文件", OK, f"{status['path']}，SESSDATA {status['sessdata_len']} 字符")
+            Check(
+                "bilibili",
+                "cookies 文件",
+                OK,
+                f"{status['path']}，{status['cookie_name']} {status['cookie_len']} 字符",
+            )
         )
     checks.append(_reachable_check(NAV_URL, timeout=timeout))
     if state != "ok":

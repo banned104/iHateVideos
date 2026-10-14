@@ -193,13 +193,14 @@ def test_credential_status_missing_without_config_dir(tmp_path, monkeypatch):
     assert status["dir"] == str(config_dir())
 
 
-def test_credential_status_ok_reports_sessdata_length(tmp_path, monkeypatch):
+def test_credential_status_ok_reports_cookie_length(tmp_path, monkeypatch):
     directory = make_project(tmp_path)
     write_cookies(directory / "cookies.txt", "abcdef")
     monkeypatch.chdir(tmp_path)
     status = credential_status()
     assert status["state"] == "ok"
-    assert status["sessdata_len"] == len("abcdef")
+    assert status["cookie_name"] == "SESSDATA"
+    assert status["cookie_len"] == len("abcdef")
 
 
 def test_config_dir_sits_under_project_root(tmp_path, monkeypatch):

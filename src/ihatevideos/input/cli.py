@@ -13,6 +13,7 @@ from .bilibili_ids import (
     normalize_bilibili_target,
 )
 from .cookies import COOKIES_EXPORT_HINT, credential_status, verify_login
+from .platform import Platform
 from .resolver import resolve_input
 from .subtitle import fetch_bilibili_subtitle
 from .url_detect import detect_platform
@@ -98,14 +99,18 @@ def _cookie_hint(status: dict) -> str:
     if status["state"] == "missing":
         return f"{COOKIES_EXPORT_HINT} 复制到 {status['dir']}"
     files = "、".join(status.get("files", []))
-    return f"{status['dir']} 里没有可用的 cookies 文件（现有：{files}），{COOKIES_EXPORT_HINT} 复制进去"
+    return (
+        f"{status['dir']} 里的文件都没有 {status['cookie_name']}"
+        f"（现有：{files}），{COOKIES_EXPORT_HINT} 复制进去"
+    )
 
 
 def _cmd_cookies(args: argparse.Namespace) -> int:
-    status = credential_status()
-    payload = {"command": "cookies", **status}
+    platform = Platform(args.platform)
+    status = credential_status(platform)
+    payload = {"command": "cookies", "platform": platform.value, **status}
     if status["state"] == "ok":
-        logged_in, detail = verify_login()
+        logged_in, detail = verify_login(platform)
     else:
         logged_in, detail = False, _cookie_hint(status)
     payload["login"] = logged_in
@@ -293,7 +298,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_resolve.set_defaults(func=_cmd_resolve)
 
     p_cookies = sub.add_parser(
-        "cookies", help="Check the cookies file in temp/config/ against the Bilibili login API."
+        "cookies",
+        help="Check the cookies file in temp/config/ against the platform login API.",
+    )
+    p_cookies.add_argument(
+        "--platform",
+        default=Platform.BILIBILI.value,
+        choices=[Platform.BILIBILI.value, Platform.YOUTUBE.value],
+        help="查哪个平台的 cookies，默认 bilibili。",
     )
     p_cookies.set_defaults(func=_cmd_cookies)
 

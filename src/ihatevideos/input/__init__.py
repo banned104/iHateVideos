@@ -28,13 +28,18 @@ from .comments import (
 )
 from .cookies import (
     BILIBILI_USER_AGENT,
+    BROWSER_USER_AGENT,
+    COOKIES_EXPORT_HINT,
     bilibili_cookie_string,
     config_dir,
     credential_data,
     credential_status,
     find_cookies_file,
     load_bilibili_cookies,
+    load_cookies,
+    verify_bilibili_login,
     verify_login,
+    verify_youtube_login,
 )
 from .metadata import VideoMetadata, get_video_metadata, get_video_metadata_async
 from .platform import (
@@ -52,9 +57,11 @@ from .ximalaya import XimalayaDownloader, resolve_ximalaya_sound_url
 
 __all__ = [
     "BILIBILI_USER_AGENT",
+    "BROWSER_USER_AGENT",
     "BilibiliComment",
     "BilibiliCommentBundle",
     "BilibiliSubtitle",
+    "COOKIES_EXPORT_HINT",
     "DEFAULT_COMMENT_LIMIT",
     "Platform",
     "PlatformComment",
@@ -88,6 +95,7 @@ __all__ = [
     "get_video_metadata",
     "get_video_metadata_async",
     "load_bilibili_cookies",
+    "load_cookies",
     "normalize_bilibili_target",
     "prepare_session_dir",
     "resolve_input",
@@ -96,7 +104,9 @@ __all__ = [
     "sanitize_filename_component",
     "session_dir_name",
     "subtitle_artifact_paths",
+    "verify_bilibili_login",
     "verify_login",
+    "verify_youtube_login",
     "write_comments_json",
     "write_comments_markdown",
     "write_meta_json",
