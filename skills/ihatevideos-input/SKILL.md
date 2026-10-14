@@ -154,7 +154,7 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 9. **YouTube: subtitle first, then media.** `ytsub` (or `resolve`) picks one
    track: manual before auto, then 简 → 繁 → 英 → 其它. When a subtitle hits,
    no media is downloaded at all. When nothing hits, `--media audio` (default)
-   gives an mp3 for ASR, `--media video` gives an mp4 up to 1080p that serves
+   gives an mp3 for ASR, `--media video` gives an mp4 (up to `--height`, default
    both ASR and frame extraction. YouTube cookies are optional: only
    members-only or age-gated videos need them.
 
@@ -186,7 +186,7 @@ uv run ihatevideos-input detect <url>          # offline: bilibili/youtube/xiaoy
 uv run ihatevideos-input ids <bilibili-input>  # offline: bvid/page/target_id/normalized
 uv run ihatevideos-input ximalaya <url>        # offline for direct sound links
 uv run ihatevideos-input resolve --url <url> --download-dir ./work        # may download
-uv run ihatevideos-input resolve --url <youtube-url> --media video        # YouTube: fetch the mp4 for frames
+uv run ihatevideos-input resolve --url <youtube-url> --media video --height 720  # YouTube: fetch the mp4 for frames
 uv run ihatevideos-input resolve --audio-path uploads/BV1xx411c7mD_x.m4a  # local, offline
 uv run ihatevideos-input cookies [--platform youtube]  # check temp/config/ cookies against the platform login API
 uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text + items files; exit 3 prints reason

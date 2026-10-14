@@ -20,7 +20,7 @@ from .subtitle import Subtitle, SubtitleResult, fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .xiaoyuzhou import XiaoyuzhouDownloader
 from .ximalaya import XimalayaDownloader
-from .youtube import YoutubeDownloader, metadata_from_info
+from .youtube import DEFAULT_HEIGHT_CAP, YoutubeDownloader, metadata_from_info
 from .youtube_subtitle import fetch_youtube_subtitle
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ def resolve_input(
     fetch_metadata: bool = True,
     subtitle_timeout_seconds: int = 60,
     media: str = "audio",
+    height_cap: int = DEFAULT_HEIGHT_CAP,
 ) -> ResolvedInput:
     """Resolve one video/audio input to (audio, metadata, subtitle).
 
@@ -175,7 +176,7 @@ def resolve_input(
 
     if platform == Platform.YOUTUBE:
         logger.info("=== 取 YouTube 信息与字幕 ===")
-        downloader = YoutubeDownloader(media=media)
+        downloader = YoutubeDownloader(media=media, height_cap=height_cap)
         info = downloader.resolve_info(url)
         metadata = VideoMetadata.from_platform_metadata(metadata_from_info(info))
         bvid = input_bvid or metadata.bvid

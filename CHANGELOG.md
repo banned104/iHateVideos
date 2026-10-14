@@ -6,7 +6,7 @@
 
 - `input` 支持 YouTube：链接判定认 `watch?v=`、`shorts`、`live`、`embed`、`v` 与 `youtu.be` 短链，`Platform` 加 `YOUTUBE` 取值；频道页、首页、纯播放列表页没有视频 ID，仍按不支持的 URL 处理。
 - 新增 `ihatevideos-input ytsub <url>`：只取一条字幕，按人工优先、中简 → 中繁 → 英 → 其它的顺序挑轨道，写进会话目录的 `_sub.txt`、`_sub_items.json`、`_meta.json`；没有可下载的字幕轨道时退出码 `3`。
-- `resolve` 加 `--media audio|video`：命中字幕就不下媒体；未命中时默认下 mp3 给语音识别，要抽帧时用 `video` 拿 1080p 以内的 mp4。输出加 `subtitle_lang` 与 `subtitle_source` 两个字段。
+- `resolve` 加 `--media audio|video` 与 `--height`：默认的 `audio` 命中字幕就不下媒体；`video` 是明确要视频文件（取帧用），命中字幕也照下，清晰度用 `--height` 限定（默认 1080）。输出加 `subtitle_lang` 与 `subtitle_source` 两个字段。
 - `cookies` 改成按平台挑文件与校验登录态：B 站看 `SESSDATA`，YouTube 看 `LOGIN_INFO`，两份文件放同一个 `temp/config/` 目录；命令加 `--platform`，登录态检查分平台实现。
 - `download` 支持只下一条语言的字幕：`--skip-download` 配 `--write-subs` 或 `--write-auto-subs`，json3 优先、vtt 兜底；字幕文件不出现在 `after_move` 输出里，用调用前后目录对比找出。
 - 字幕结构改成平台无关：`BilibiliSubtitle` 与 `BilibiliSubtitleItem` 改名为 `Subtitle` 与 `SubtitleItem`，旧名字保留为别名；语言优先顺序统一成一张表。

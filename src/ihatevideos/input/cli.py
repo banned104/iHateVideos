@@ -18,7 +18,7 @@ from .resolver import resolve_input
 from .subtitle import fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .ximalaya import resolve_ximalaya_sound_url
-from .youtube import SUPPORTED_MEDIA
+from .youtube import DEFAULT_HEIGHT_CAP, SUPPORTED_MEDIA
 
 
 def _print_json(payload: dict) -> None:
@@ -70,6 +70,7 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
             fetch_metadata=not args.no_metadata,
             subtitle_timeout_seconds=args.subtitle_timeout,
             media=args.media,
+            height_cap=args.height,
         )
     except FileNotFoundError as exc:
         print(f"error: file not found: {exc}", file=sys.stderr)
@@ -375,6 +376,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="audio",
         choices=list(SUPPORTED_MEDIA),
         help="YouTube 用：audio 只取音频，video 取 1080p 以内的视频，默认 audio。",
+    )
+    p_resolve.add_argument(
+        "--height",
+        type=int,
+        default=DEFAULT_HEIGHT_CAP,
+        help="YouTube 取视频时的清晰度上限，默认 1080。",
     )
     p_resolve.set_defaults(func=_cmd_resolve)
 
