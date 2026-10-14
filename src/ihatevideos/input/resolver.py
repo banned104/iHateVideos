@@ -192,7 +192,8 @@ def resolve_input(
             if subtitle_result.subtitle is None:
                 logger.info("YouTube 字幕不可用：%s", subtitle_result.reason)
         audio_file = None
-        if subtitle_result.subtitle is None:
+        # --media video 是明确要视频文件（取帧用），命中字幕也照下
+        if subtitle_result.subtitle is None or media == "video":
             logger.info("=== 下载媒体 ===")
             audio_file = downloader.download_media(info, url, Path(download_dir))
         return ResolvedInput(
