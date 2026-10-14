@@ -6,6 +6,7 @@ import webvtt
 
 from ..download.errors import DownloadError
 from ..download.models import SubtitleTrack
+from ..download.ytdlp_args import SUBTITLE_TIMEOUT_SECONDS
 from ..download.ytdlp_engine import download_subtitles
 from .subtitle import Subtitle, SubtitleItem, SubtitleResult, language_priority
 
@@ -103,6 +104,7 @@ def fetch_youtube_subtitle(
     output_base: str,
     proxy: str,
     cookie_file: str | None = None,
+    timeout: float = SUBTITLE_TIMEOUT_SECONDS,
 ) -> SubtitleResult:
     """挑一条字幕下下来并解析；失败时在 reason 里说明原因。"""
     track = pick_subtitle_track(tracks)
@@ -117,6 +119,7 @@ def fetch_youtube_subtitle(
             auto=track.auto,
             proxy=proxy,
             cookie_file=cookie_file,
+            timeout=timeout,
         )
         items = parse_subtitle_file(path)
     except (DownloadError, ValueError, OSError) as exc:

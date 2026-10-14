@@ -36,6 +36,8 @@ class ResolvedInput:
     use_local_audio: bool
     platform: Platform | None
     subtitle_reason: str = ""
+    subtitle_lang: str = ""
+    subtitle_source: str = ""
 
 
 def resolve_input(
@@ -86,7 +88,7 @@ def resolve_input(
     if platform is None and extract_bvid(url) is not None:
         platform = Platform.BILIBILI
     if platform is None:
-        raise ValueError("不支持的 URL，请使用 Bilibili、小宇宙或喜马拉雅链接")
+        raise ValueError("不支持的 URL，请使用 Bilibili、小宇宙、喜马拉雅或 YouTube 链接")
 
     if platform == Platform.BILIBILI:
         normalized_url = normalize_bilibili_target(url)
@@ -131,6 +133,8 @@ def resolve_input(
             use_local_audio=False,
             platform=platform,
             subtitle_reason=subtitle_result.reason,
+            subtitle_lang=subtitle_result.lang,
+            subtitle_source=subtitle_result.source,
         )
 
     if platform == Platform.XIAOYUZHOU:
@@ -200,6 +204,8 @@ def resolve_input(
             use_local_audio=False,
             platform=platform,
             subtitle_reason=subtitle_result.reason,
+            subtitle_lang=subtitle_result.lang,
+            subtitle_source=subtitle_result.source,
         )
 
     raise ValueError(f"不支持的平台: {platform}")

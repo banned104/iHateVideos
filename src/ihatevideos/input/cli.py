@@ -18,6 +18,7 @@ from .resolver import resolve_input
 from .subtitle import fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .ximalaya import resolve_ximalaya_sound_url
+from .youtube import SUPPORTED_MEDIA
 
 
 def _print_json(payload: dict) -> None:
@@ -68,6 +69,7 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
             audio_quality=args.audio_quality,
             fetch_metadata=not args.no_metadata,
             subtitle_timeout_seconds=args.subtitle_timeout,
+            media=args.media,
         )
     except FileNotFoundError as exc:
         print(f"error: file not found: {exc}", file=sys.stderr)
@@ -84,6 +86,8 @@ def _cmd_resolve(args: argparse.Namespace) -> int:
             "has_native_subtitle": result.subtitle is not None,
             "subtitle_chars": len(result.subtitle.text) if result.subtitle else 0,
             "subtitle_reason": result.subtitle_reason,
+            "subtitle_lang": result.subtitle_lang,
+            "subtitle_source": result.subtitle_source,
             "resource_id": result.transcription_id,
             "bvid": result.bvid,
             "platform": result.platform.value if result.platform else None,
@@ -118,6 +122,77 @@ def _cmd_cookies(args: argparse.Namespace) -> int:
     _print_json(payload)
     return 0 if logged_in else 3
 
+
+def _cmd_ytsub(args: argparse.Namespace) -> int:
+    from .artifacts import prepare_session_dir, subtitle_artifact_paths, write_meta_json
+    from .metadata import VideoMetadata
+    from .youtube import YoutubeDownloader, metadata_from_info
+    from .youtube_subtitle import fetch_youtube_subtitle
+
+    if detect_platform(args.target) != Platform.YOUTUBE:
+        print("error: ytsub 只处理 YouTube 视频链接", file=sys.stderr)
+        return 2
+    downloader = YoutubeDownloader()
+    info = downloader.resolve_info(args.target)
+    metadata = VideoMetadata.from_platform_metadata(metadata_from_info(info))
+    session_dir = prepare_session_dir(
+        args.out_dir,
+        title=metadata.title or metadata.bvid,
+        pubdate=metadata.pubdate,
+        bvid=metadata.bvid,
+    )
+    result = fetch_youtube_subtitle(
+        args.target,
+        tracks=info.subtitles,
+        out_dir=session_dir,
+        output_base=metadata.bvid,
+        proxy=downloader.proxy,
+        cookie_file=downloader.cookie_file,
+        timeout=float(args.timeout),
+    )
+    if result.subtitle is None:
+        _print_json(
+            {
+                "command": "ytsub",
+                "target": args.target,
+                "session_dir": str(session_dir),
+                "text_path": None,
+                "items_path": None,
+                "reason": result.reason,
+                "skipped": "no subtitle (go to ASR)",
+            }
+        )
+        return 3
+    text_path, items_path = subtitle_artifact_paths(session_dir, metadata.bvid)
+    meta_path = write_meta_json(session_dir, metadata.bvid, metadata)
+    text_path.write_text(result.subtitle.text, encoding="utf-8")
+    items_path.write_text(
+        json.dumps(
+            [
+                {"start_ms": item.start_ms, "end_ms": item.end_ms, "text": item.text}
+                for item in result.subtitle.items
+            ],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    _print_json(
+        {
+            "command": "ytsub",
+            "target": args.target,
+            "session_dir": str(session_dir),
+            "text_path": str(text_path),
+            "items_path": str(items_path),
+            "meta_path": str(meta_path),
+            "lang": result.lang,
+            "source": result.source,
+            "cues": len(result.subtitle.items),
+            "chars": len(result.subtitle.text),
+            "skipped": None,
+        }
+    )
+    return 0
 
 def _cmd_subtitle(args: argparse.Namespace) -> int:
     from .artifacts import (
@@ -295,6 +370,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_resolve.add_argument("--no-prefer-subtitle", action="store_true")
     p_resolve.add_argument("--no-metadata", action="store_true")
     p_resolve.add_argument("--subtitle-timeout", type=int, default=60)
+    p_resolve.add_argument(
+        "--media",
+        default="audio",
+        choices=list(SUPPORTED_MEDIA),
+        help="YouTube 用：audio 只取音频，video 取 1080p 以内的视频，默认 audio。",
+    )
     p_resolve.set_defaults(func=_cmd_resolve)
 
     p_cookies = sub.add_parser(
@@ -316,6 +397,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_sub.add_argument("--out-dir", default="temp", help="session root (default temp/)")
     p_sub.add_argument("--timeout", type=int, default=60)
     p_sub.set_defaults(func=_cmd_subtitle)
+
+    p_ytsub = sub.add_parser(
+        "ytsub", help="Fetch a YouTube subtitle and write text + items + meta files."
+    )
+    p_ytsub.add_argument("target")
+    p_ytsub.add_argument("--out-dir", default="temp", help="session root (default temp/)")
+    p_ytsub.add_argument("--timeout", type=int, default=120, help="下字幕的超时秒数")
+    p_ytsub.set_defaults(func=_cmd_ytsub)
 
     p_comments = sub.add_parser(
         "comments", help="Fetch Bilibili hot comments + all child replies (Bilibili only)."
