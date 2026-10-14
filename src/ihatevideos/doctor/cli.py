@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="ihatevideos-doctor",
         description=(
             "iHateVideos 运行环境检查：Python 依赖、外部程序、ffmpeg 实际出活能力、"
-            "GPU 计算、模型权重、B 站 cookies 与登录态、系统代理。"
+            "GPU 计算、模型权重、B 站与 YouTube 的 cookies 与登录态、系统代理。"
         ),
     )
     parser.add_argument(

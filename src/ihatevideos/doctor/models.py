@@ -10,7 +10,16 @@ MISSING = "missing"
 FAIL = "fail"
 SKIP = "skip"
 
-GROUPS: tuple[str, ...] = ("python", "binary", "ffmpeg", "gpu", "stt", "bilibili", "network")
+GROUPS: tuple[str, ...] = (
+    "python",
+    "binary",
+    "ffmpeg",
+    "gpu",
+    "stt",
+    "bilibili",
+    "youtube",
+    "network",
+)
 
 GROUP_TITLES = {
     "python": "Python 依赖",
@@ -20,6 +29,7 @@ GROUP_TITLES = {
     "stt": "语音识别",
     "bilibili": "B 站",
     "network": "网络",
+    "youtube": "YouTube",
 }
 
 FFMPEG_HINT = "安装 FFmpeg 并加入 PATH，或用 FFMPEG_PATH / FFPROBE_PATH 指定位置"

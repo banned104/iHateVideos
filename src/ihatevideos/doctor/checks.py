@@ -30,10 +30,12 @@ PROBE_TIMEOUT_SECONDS = 60
 LOGIN_TIMEOUT_SECONDS = 30.0
 # 与 input.cookies 的 COOKIES_EXPORT_HINT 是同一句话；doctor 不能在导入期读 input
 COOKIES_HINT = "用 Chrome 插件「Get cookies.txt LOCALLY」导出一份 cookies.txt 放进 temp/config/"
+YOUTUBE_URL = "https://www.youtube.com/"
 # ihatevideos.download 与 ihatevideos.input 的 __init__ 会在导入期拉起全部子模块，
 # 先把它们需要的第三方包查清楚，缺了就不导入，doctor 才能在环境残缺时照常给出报告
 DOWNLOAD_REQUIREMENTS = ("aria2c", "imageio_ffmpeg", "aria2p", "requests", "httpx")
 INPUT_REQUIREMENTS = ("httpx", "bilibili_api", "requests")
+YOUTUBE_REQUIREMENTS = ("yt_dlp", "httpx", "webvtt")
 
 # (导入名, 发行包名, 用处, 缺了挡住谁)
 PYTHON_PACKAGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
@@ -42,7 +44,8 @@ PYTHON_PACKAGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("aria2p", "aria2p", "aria2c 进程控制", DOWNLOAD_BLOCKS),
     ("aria2c", "aria2", "aria2c 可执行文件", DOWNLOAD_BLOCKS),
     ("bilibili_api", "bilibili-api-python", "B 站接口", INPUT_BLOCKS),
-    ("yt_dlp", "yt-dlp", "视频下载", DOWNLOAD_BLOCKS),
+    ("yt_dlp", "yt-dlp", "视频下载", DOWNLOAD_BLOCKS + INPUT_BLOCKS),
+    ("webvtt", "webvtt-py", "YouTube vtt 字幕解析", INPUT_BLOCKS),
     ("imageio_ffmpeg", "imageio-ffmpeg", "ffmpeg 可执行文件", DOWNLOAD_BLOCKS),
     ("yutto", "yutto", "B 站音频下载", INPUT_BLOCKS),
     ("torch", "torch", "GPU 计算", STT_BLOCKS),
@@ -389,6 +392,93 @@ def check_bilibili(*, timeout: float = LOGIN_TIMEOUT_SECONDS) -> list[Check]:
     return checks
 
 
+def check_youtube(*, timeout: float = LOGIN_TIMEOUT_SECONDS) -> list[Check]:
+    if not _can_import(*YOUTUBE_REQUIREMENTS):
+        missing = ", ".join(_missing_of(YOUTUBE_REQUIREMENTS))
+        return [
+            Check("youtube", "cookies 文件", SKIP, f"缺少 {missing}，无法读取 cookies"),
+            Check("youtube", "登录态", SKIP, f"缺少 {missing}"),
+            Check("youtube", "站点可达", SKIP, f"缺少 {missing}"),
+        ]
+
+    from ..input.cookies import credential_status, verify_login
+    from ..input.platform import Platform
+
+    checks: list[Check] = []
+    status = credential_status(Platform.YOUTUBE)
+    state = status["state"]
+    if state == "missing":
+        checks.append(
+            Check(
+                "youtube",
+                "cookies 文件",
+                MISSING,
+                f"{status['dir']} 里没有 cookies 文件",
+                INPUT_BLOCKS,
+                COOKIES_HINT,
+            )
+        )
+    elif state == "empty":
+        checks.append(
+            Check(
+                "youtube",
+                "cookies 文件",
+                MISSING,
+                f"{status['dir']} 里的文件都没有 {status['cookie_name']}：{', '.join(status['files'])}",
+                INPUT_BLOCKS,
+                COOKIES_HINT,
+            )
+        )
+    else:
+        checks.append(
+            Check(
+                "youtube",
+                "cookies 文件",
+                OK,
+                f"{status['path']}，{status['cookie_name']} {status['cookie_len']} 字符",
+            )
+        )
+    checks.append(_youtube_reachable_check(timeout=timeout))
+    if state != "ok":
+        checks.append(Check("youtube", "登录态", SKIP, "没有可用的 cookies 文件"))
+    else:
+        ok, message = verify_login(Platform.YOUTUBE, timeout_seconds=timeout)
+        checks.append(Check("youtube", "登录态", OK if ok else WARN, message, (), COOKIES_HINT))
+    return checks
+
+
+def _youtube_reachable_check(*, timeout: float) -> Check:
+    import httpx
+
+    from ..input.cookies import BROWSER_USER_AGENT
+
+    try:
+        response = httpx.get(
+            YOUTUBE_URL,
+            headers={"User-Agent": BROWSER_USER_AGENT},
+            timeout=timeout,
+            follow_redirects=True,
+        )
+    except httpx.HTTPError as exc:
+        return Check(
+            "youtube",
+            "站点可达",
+            FAIL,
+            one_line(str(exc)),
+            INPUT_BLOCKS,
+            "检查网络与代理设置",
+        )
+    if response.status_code >= 400:
+        return Check(
+            "youtube",
+            "站点可达",
+            FAIL,
+            f"返回状态码 {response.status_code}",
+            INPUT_BLOCKS,
+        )
+    return Check("youtube", "站点可达", OK, f"应答正常（状态码 {response.status_code}）")
+
+
 def check_network() -> list[Check]:
     if not _can_import(*DOWNLOAD_REQUIREMENTS):
         missing = ", ".join(_missing_of(DOWNLOAD_REQUIREMENTS))
@@ -425,6 +515,8 @@ def run_checks(
         checks += check_stt(work_path, deep=deep)
     if "bilibili" in groups:
         checks += check_bilibili()
+    if "youtube" in groups:
+        checks += check_youtube()
     if "network" in groups:
         checks += check_network()
     return checks
