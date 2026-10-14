@@ -223,3 +223,42 @@ def test_task_options_reject_unknown_status() -> None:
         from ihatevideos.download.aria2_engine import map_status
 
         map_status("nonsense")
+
+
+def test_subtitle_only_args_skips_download() -> None:
+    from ihatevideos.download.ytdlp_args import build_subtitle_only_args
+
+    args = build_subtitle_only_args(
+        url="https://www.youtube.com/watch?v=MuWTmEiNe1g",
+        out_dir="temp",
+        output_base="标题",
+        lang="zh-Hans",
+        auto=False,
+        proxy="http://127.0.0.1:7890",
+    )
+    assert "--skip-download" in args
+    assert "--write-subs" in args
+    assert "--write-auto-subs" not in args
+    assert args[args.index("--sub-langs") + 1] == "zh-Hans"
+    assert args[args.index("--sub-format") + 1] == "json3/vtt/best"
+    assert args[args.index("--proxy") + 1] == "http://127.0.0.1:7890"
+    assert args[-1] == "https://www.youtube.com/watch?v=MuWTmEiNe1g"
+    assert any(arg.endswith("标题.%(ext)s") for arg in args)
+
+
+def test_subtitle_only_args_uses_auto_flag_and_cookies() -> None:
+    from ihatevideos.download.ytdlp_args import build_subtitle_only_args
+
+    args = build_subtitle_only_args(
+        url="https://youtu.be/MuWTmEiNe1g",
+        out_dir="temp",
+        output_base="标题",
+        lang="en",
+        auto=True,
+        proxy="",
+        cookie_file="C:/temp/config/yt.txt",
+    )
+    assert "--write-auto-subs" in args
+    assert "--write-subs" not in args
+    assert args[args.index("--cookies") + 1] == "C:/temp/config/yt.txt"
+    assert args[args.index("--sub-langs") + 1] == "en"

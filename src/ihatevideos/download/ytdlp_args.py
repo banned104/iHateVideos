@@ -15,6 +15,8 @@ AUDIO_FORMAT = "mp3"
 AUDIO_QUALITY = "0"
 CONCURRENT_FRAGMENTS = 4
 FRAGMENTED_PROTOCOLS = ("m3u8", "m3u8_native", "http_dash_segments", "dash")
+SUBTITLE_TIMEOUT_SECONDS = 120.0
+SUBTITLE_FORMATS = "json3/vtt/best"
 # 照 DownLord video/ytdlpDownloader.ts:44
 ARIA2_DOWNLOADER_ARGS = (
     "-x 16 -s 16 -k 1M --connect-timeout=10 --auto-save-interval=1 --allow-overwrite=true"
@@ -116,6 +118,41 @@ def build_subtitle_args(
     ]
     return args
 
+
+
+def build_subtitle_only_args(
+    *,
+    url: str,
+    out_dir: Path | str,
+    output_base: str,
+    lang: str,
+    auto: bool,
+    proxy: str,
+    cookie_file: str | None = None,
+    cookie_from_browser: str | None = None,
+) -> list[str]:
+    """只下一条语言的字幕，不碰视频与音频。"""
+    output = str(Path(out_dir) / f"{output_base}.%(ext)s")
+    args = [
+        "--skip-download",
+        "-o",
+        output,
+        "--no-playlist",
+        "--no-color",
+        "--no-warnings",
+        "--ignore-config",
+        "--socket-timeout",
+        SOCKET_TIMEOUT_SECONDS,
+        "--write-auto-subs" if auto else "--write-subs",
+        "--sub-langs",
+        lang,
+        "--sub-format",
+        SUBTITLE_FORMATS,
+    ]
+    args += proxy_args(proxy)
+    args += cookie_args(cookie_file=cookie_file, cookie_from_browser=cookie_from_browser)
+    args.append(url)
+    return args
 
 def downloader_args(*, accel_path: str | None, limit_kbps: int | None, proxy: str) -> list[str]:
     """照 DownLord video/ytdlpDownloader.ts:28-51。

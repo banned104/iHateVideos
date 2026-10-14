@@ -11,10 +11,12 @@ from .filenames import predict_ext, sanitize_basename, video_filename
 from .models import FormatInfo, SubtitleTrack, VideoInfo
 from .ytdlp_args import (
     RESOLVE_TIMEOUT_SECONDS,
+    SUBTITLE_TIMEOUT_SECONDS,
     build_download_args,
     build_resolve_args,
     build_selector,
     build_subtitle_args,
+    build_subtitle_only_args,
     is_fragmented_protocol,
 )
 from .ytdlp_json import parse_info_tree, quality_tag, resolved_top_height
@@ -265,3 +267,45 @@ def absorb_line(run: VideoRun, line: str) -> None:
     if parsed.kind == "destination" and parsed.filepath:
         run.destination = Path(parsed.filepath)
         return
+
+
+def download_subtitles(
+    *,
+    url: str,
+    out_dir: Path,
+    output_base: str,
+    lang: str,
+    auto: bool,
+    proxy: str,
+    cookie_file: str | None = None,
+    cookie_from_browser: str | None = None,
+    timeout: float = SUBTITLE_TIMEOUT_SECONDS,
+) -> Path:
+    """只下一条语言的字幕，返回落地的文件路径。
+
+    字幕文件不出现在 --print after_move 的输出里，所以用调用前后目录对比找出新文件。
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pattern = f"{glob.escape(output_base)}*"
+    before = {path.resolve() for path in out_dir.glob(pattern)}
+    process = YtdlpProcess()
+    args = build_subtitle_only_args(
+        url=url,
+        out_dir=out_dir,
+        output_base=output_base,
+        lang=lang,
+        auto=auto,
+        proxy=proxy,
+        cookie_file=cookie_file,
+        cookie_from_browser=cookie_from_browser,
+    )
+    try:
+        process.run_capture(args, timeout=timeout)
+    except YtdlpError as exc:
+        raise _map_resolve_error(exc) from exc
+    created = sorted(
+        path for path in out_dir.glob(pattern) if path.resolve() not in before
+    )
+    if not created:
+        raise YtdlpError(f"yt-dlp 没有写出 {lang} 的字幕文件")
+    return created[0]
