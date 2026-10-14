@@ -70,6 +70,8 @@ class SubtitleResult:
 
     subtitle: Subtitle | None
     reason: str = ""
+    lang: str = ""
+    source: str = ""
 
     @property
     def available(self) -> bool:
@@ -104,6 +106,10 @@ def language_priority(code: str) -> int:
     for group_index, group in enumerate(LANGUAGE_GROUPS):
         for index, item in enumerate(group):
             if normalized == item:
+                return group_index * 10 + index
+    for group_index, group in enumerate(LANGUAGE_GROUPS):
+        for index, item in enumerate(group):
+            if normalized.startswith(f"{item}-"):
                 return group_index * 10 + index
     return UNLISTED_LANGUAGE_PRIORITY
 
@@ -256,7 +262,12 @@ async def _fetch_subtitle_async(target: str) -> SubtitleResult:
             continue
         text = "\n".join(item.text for item in items)
         logger.info("B站字幕命中：%s，%d 段", language, len(items))
-        return SubtitleResult(Subtitle(text=text, items=items), "")
+        return SubtitleResult(
+            Subtitle(text=text, items=items),
+            "",
+            lang=language,
+            source="auto" if is_ai_track(track) else "manual",
+        )
 
     return SubtitleResult(None, "；".join(failures) or "没有可下载的字幕正文")
 

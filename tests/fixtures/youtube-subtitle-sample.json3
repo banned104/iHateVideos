@@ -1,0 +1,20 @@
+{
+  "wireMagic": "pb3",
+  "events": [
+    {"tStartMs": 0, "dDurationMs": 1119069, "id": 1, "wpWinPosId": 1},
+    {"tStartMs": 0, "dDurationMs": 2510, "wWinId": 1, "segs": [{"utf8": "[Music]"}]},
+    {"tStartMs": 4390, "wWinId": 1, "aAppend": 1, "segs": [{"utf8": "\n"}]},
+    {
+      "tStartMs": 4400,
+      "dDurationMs": 4159,
+      "wWinId": 1,
+      "segs": [
+        {"utf8": "This"},
+        {"utf8": " is"},
+        {"utf8": " a"},
+        {"utf8": " three."}
+      ]
+    },
+    {"tStartMs": 8560, "dDurationMs": 3000, "wWinId": 1, "segs": [{"utf8": "   "}]}
+  ]
+}
