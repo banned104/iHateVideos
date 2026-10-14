@@ -20,6 +20,8 @@ from .subtitle import Subtitle, SubtitleResult, fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .xiaoyuzhou import XiaoyuzhouDownloader
 from .ximalaya import XimalayaDownloader
+from .youtube import YoutubeDownloader, metadata_from_info
+from .youtube_subtitle import fetch_youtube_subtitle
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,7 @@ def resolve_input(
     audio_quality: str = "30216",
     fetch_metadata: bool = True,
     subtitle_timeout_seconds: int = 60,
+    media: str = "audio",
 ) -> ResolvedInput:
     """Resolve one video/audio input to (audio, metadata, subtitle).
 
@@ -164,6 +167,39 @@ def resolve_input(
             use_local_audio=False,
             platform=platform,
             subtitle_reason="非 B站平台，没有原生字幕",
+        )
+
+    if platform == Platform.YOUTUBE:
+        logger.info("=== 取 YouTube 信息与字幕 ===")
+        downloader = YoutubeDownloader(media=media)
+        info = downloader.resolve_info(url)
+        metadata = VideoMetadata.from_platform_metadata(metadata_from_info(info))
+        bvid = input_bvid or metadata.bvid
+        subtitle_result = SubtitleResult(None, "已按参数跳过 YouTube 字幕")
+        if prefer_bilibili_subtitle:
+            subtitle_result = fetch_youtube_subtitle(
+                url,
+                tracks=info.subtitles,
+                out_dir=Path(download_dir),
+                output_base=bvid,
+                proxy=downloader.proxy,
+                cookie_file=downloader.cookie_file,
+            )
+            if subtitle_result.subtitle is None:
+                logger.info("YouTube 字幕不可用：%s", subtitle_result.reason)
+        audio_file = None
+        if subtitle_result.subtitle is None:
+            logger.info("=== 下载媒体 ===")
+            audio_file = downloader.download_media(info, url, Path(download_dir))
+        return ResolvedInput(
+            audio_file=audio_file,
+            metadata=metadata,
+            bvid=bvid,
+            transcription_id=bvid,
+            subtitle=subtitle_result.subtitle,
+            use_local_audio=False,
+            platform=platform,
+            subtitle_reason=subtitle_result.reason,
         )
 
     raise ValueError(f"不支持的平台: {platform}")

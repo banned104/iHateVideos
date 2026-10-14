@@ -54,6 +54,8 @@ from .subtitle import BilibiliSubtitle, Subtitle, SubtitleItem, SubtitleResult, 
 from .url_detect import detect_platform, extract_platform_id
 from .xiaoyuzhou import XiaoyuzhouDownloader, fetch_xiaoyuzhou_metadata
 from .ximalaya import XimalayaDownloader, resolve_ximalaya_sound_url
+from .youtube import YoutubeDownloader, metadata_from_info
+from .youtube_subtitle import fetch_youtube_subtitle
 
 __all__ = [
     "BILIBILI_USER_AGENT",
@@ -75,6 +77,7 @@ __all__ = [
     "VideoMetadata",
     "XiaoyuzhouDownloader",
     "XimalayaDownloader",
+    "YoutubeDownloader",
     "bilibili_cookie_string",
     "comment_artifact_paths",
     "comments_to_markdown",
@@ -93,11 +96,13 @@ __all__ = [
     "fetch_bilibili_subtitle",
     "fetch_comments_with_login",
     "fetch_xiaoyuzhou_metadata",
+    "fetch_youtube_subtitle",
     "find_cookies_file",
     "get_video_metadata",
     "get_video_metadata_async",
     "load_bilibili_cookies",
     "load_cookies",
+    "metadata_from_info",
     "normalize_bilibili_target",
     "prepare_session_dir",
     "resolve_input",

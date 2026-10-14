@@ -98,6 +98,7 @@ class VideoInfo:
     extractor: str | None
     webpage_url: str | None
     thumbnail: str | None
+    upload_date: str | None = None
     formats: list[FormatInfo] = field(default_factory=list)
     subtitles: list[SubtitleTrack] = field(default_factory=list)
 
@@ -110,6 +111,7 @@ class VideoInfo:
             "extractor": self.extractor,
             "webpage_url": self.webpage_url,
             "thumbnail": self.thumbnail,
+            "upload_date": self.upload_date,
             "formats": [item.to_json() for item in self.formats],
             "subtitles": [item.to_json() for item in self.subtitles],
         }

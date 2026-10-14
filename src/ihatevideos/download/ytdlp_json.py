@@ -35,6 +35,14 @@ def _entries(value: object) -> list[dict]:
     return [item for item in value if isinstance(item, dict)]
 
 
+def _upload_date(value: object) -> str | None:
+    """yt-dlp 的 upload_date 是 YYYYMMDD，转成 YYYY-MM-DD。"""
+    text = _as_str(value)
+    if text is None or len(text) != 8 or not text.isdigit():
+        return None
+    return f"{text[0:4]}-{text[4:6]}-{text[6:8]}"
+
+
 def quality_tag(
     *, audio_only: bool, format_height: int | None, height_cap: int | None
 ) -> str | None:
@@ -132,6 +140,7 @@ def parse_info_tree(payload: dict) -> VideoInfo:
         extractor=extractor,
         webpage_url=webpage_url,
         thumbnail=_as_str(payload.get("thumbnail")),
+        upload_date=_upload_date(payload.get("upload_date")),
         formats=[_format_from_entry(entry) for entry in _entries(payload.get("formats"))],
         subtitles=subtitles,
     )
