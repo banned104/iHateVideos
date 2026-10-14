@@ -1,6 +1,6 @@
 [project]
 name = "ihatevideos"
-version = "0.8.1"
+version = "0.9.0"
 description = "把视频转成可检索的文字与图文笔记：接入、下载、媒体处理、语音识别、导出与环境检查"
 authors = [
     { name = "Banned104", email = "1286253605@qq.com" }

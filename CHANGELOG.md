@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+
+## 0.9.0 — 2026-10-14
+
+- `input` 支持 YouTube：链接判定认 `watch?v=`、`shorts`、`live`、`embed`、`v` 与 `youtu.be` 短链，`Platform` 加 `YOUTUBE` 取值；频道页、首页、纯播放列表页没有视频 ID，仍按不支持的 URL 处理。
+- 新增 `ihatevideos-input ytsub <url>`：只取一条字幕，按人工优先、中简 → 中繁 → 英 → 其它的顺序挑轨道，写进会话目录的 `_sub.txt`、`_sub_items.json`、`_meta.json`；没有可下载的字幕轨道时退出码 `3`。
+- `resolve` 加 `--media audio|video`：命中字幕就不下媒体；未命中时默认下 mp3 给语音识别，要抽帧时用 `video` 拿 1080p 以内的 mp4。输出加 `subtitle_lang` 与 `subtitle_source` 两个字段。
+- `cookies` 改成按平台挑文件与校验登录态：B 站看 `SESSDATA`，YouTube 看 `LOGIN_INFO`，两份文件放同一个 `temp/config/` 目录；命令加 `--platform`，登录态检查分平台实现。
+- `download` 支持只下一条语言的字幕：`--skip-download` 配 `--write-subs` 或 `--write-auto-subs`，json3 优先、vtt 兜底；字幕文件不出现在 `after_move` 输出里，用调用前后目录对比找出。
+- 字幕结构改成平台无关：`BilibiliSubtitle` 与 `BilibiliSubtitleItem` 改名为 `Subtitle` 与 `SubtitleItem`，旧名字保留为别名；语言优先顺序统一成一张表。
+- 依赖加 `webvtt-py`，用来解析 YouTube 的 vtt 字幕；`VideoInfo` 加 `upload_date`。
+- `doctor` 加 `youtube` 分组：cookies 文件、登录态、站点可达三项，轻重与 B 站那组一致；依赖表加 `webvtt-py`，`yt-dlp` 的阻挡范围加上 `ihatevideos-input`。
+- 修 `stt`：`--gpu` 默认改成第 0 块卡（RTX 4080 SUPER），第 1 块卡常被别的任务占用。
+- 补测试：`tests/test_input_url_detect.py`、`tests/test_input_cookies.py`、`tests/test_input_youtube_subtitle.py` 与两个字幕样本，测试总数由 128 增至 195。
 ## 0.8.1 — 2026-10-08
 
 - 修 `input`：B 站音频这次没有产出新文件时，不再拿目录里任意一份旧音频充当结果，只有标题对得上的那份会被复用。
