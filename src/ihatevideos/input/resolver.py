@@ -16,7 +16,7 @@ from .bilibili_ids import (
 )
 from .metadata import VideoMetadata, get_video_metadata
 from .platform import Platform
-from .subtitle import BilibiliSubtitle, SubtitleResult, fetch_bilibili_subtitle
+from .subtitle import Subtitle, SubtitleResult, fetch_bilibili_subtitle
 from .url_detect import detect_platform
 from .xiaoyuzhou import XiaoyuzhouDownloader
 from .ximalaya import XimalayaDownloader
@@ -30,7 +30,7 @@ class ResolvedInput:
     metadata: VideoMetadata | None
     bvid: str
     transcription_id: str
-    subtitle: BilibiliSubtitle | None
+    subtitle: Subtitle | None
     use_local_audio: bool
     platform: Platform | None
     subtitle_reason: str = ""

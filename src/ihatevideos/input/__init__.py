@@ -50,7 +50,7 @@ from .platform import (
     sanitize_filename_component,
 )
 from .resolver import ResolvedInput, resolve_input
-from .subtitle import BilibiliSubtitle, SubtitleResult, fetch_bilibili_subtitle
+from .subtitle import BilibiliSubtitle, Subtitle, SubtitleItem, SubtitleResult, fetch_bilibili_subtitle
 from .url_detect import detect_platform, extract_platform_id
 from .xiaoyuzhou import XiaoyuzhouDownloader, fetch_xiaoyuzhou_metadata
 from .ximalaya import XimalayaDownloader, resolve_ximalaya_sound_url
@@ -69,6 +69,8 @@ __all__ = [
     "PlatformDownloader",
     "PlatformMetadata",
     "ResolvedInput",
+    "Subtitle",
+    "SubtitleItem",
     "SubtitleResult",
     "VideoMetadata",
     "XiaoyuzhouDownloader",

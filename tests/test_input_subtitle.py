@@ -13,6 +13,7 @@ from ihatevideos.input.subtitle import (
     BilibiliSubtitleItem,
     is_ai_track,
     is_chinese_track,
+    language_priority,
     parse_subtitle_body,
     rank_subtitles,
     select_part_cid,
@@ -207,3 +208,20 @@ def test_config_dir_sits_under_project_root(tmp_path, monkeypatch):
     make_project(tmp_path)
     monkeypatch.chdir(tmp_path)
     assert config_dir() == tmp_path / "temp" / "config"
+
+
+def test_language_priority_orders_simplified_then_traditional_then_english():
+    assert language_priority("zh-cn") < language_priority("zh-hant")
+    assert language_priority("zh-hant") < language_priority("en")
+    assert language_priority("en") < language_priority("ja")
+    assert language_priority("zh-Hans") == language_priority("zh-hans")
+    assert language_priority("zh_TW") == language_priority("zh-tw")
+
+
+def test_rank_subtitles_prefers_simplified_over_traditional_over_english():
+    tracks = [
+        {"lan": "en", "subtitle_url": "//a.hdslb.com/en.json"},
+        {"lan": "zh-Hant", "subtitle_url": "//a.hdslb.com/hant.json"},
+        {"lan": "zh-CN", "subtitle_url": "//a.hdslb.com/cn.json"},
+    ]
+    assert [track["lan"] for track in rank_subtitles(tracks)] == ["zh-CN", "zh-Hant", "en"]

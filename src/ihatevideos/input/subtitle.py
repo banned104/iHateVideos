@@ -32,23 +32,19 @@ ALLOWED_MEDIA_SUFFIXES = (
     ".biliapi.net",
     ".akamaized.net",
 )
-# 语言权重照 B 站播放器字幕轨的 lan 取值排列，未列出的排在最后
-LANGUAGE_PRIORITIES = {
-    "zh-cn": 0,
-    "zh-hans": 1,
-    "zh": 2,
-    "ai-zh": 3,
-    "zh-hant": 4,
-    "zh-tw": 5,
-    "en": 0,
-}
-UNLISTED_LANGUAGE_PRIORITY = 20
+# 语言优先顺序：中简 → 中繁 → 英 → 其它；未列出的排最后
+LANGUAGE_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("zh-cn", "zh-hans", "zh-sg", "zh"),
+    ("zh-hant", "zh-tw", "zh-hk"),
+    ("en", "en-us", "en-gb"),
+)
+UNLISTED_LANGUAGE_PRIORITY = 100
 BODY_DOWNLOAD_TIMEOUT_SECONDS = 30.0
 
 
 @dataclass(frozen=True)
-class BilibiliSubtitleItem:
-    """One timestamped Bilibili subtitle item."""
+class SubtitleItem:
+    """One timestamped subtitle item."""
 
     start_ms: int
     end_ms: int
@@ -56,18 +52,23 @@ class BilibiliSubtitleItem:
 
 
 @dataclass(frozen=True)
-class BilibiliSubtitle:
-    """Subtitle text and timeline items returned by Bilibili."""
+class Subtitle:
+    """Subtitle text and timeline items."""
 
     text: str
-    items: tuple[BilibiliSubtitleItem, ...] = ()
+    items: tuple[SubtitleItem, ...] = ()
+
+
+# 旧名字保留：外部按 B 站语义引用这两个结构
+BilibiliSubtitleItem = SubtitleItem
+BilibiliSubtitle = Subtitle
 
 
 @dataclass(frozen=True)
 class SubtitleResult:
     """字幕获取结果；subtitle 为 None 时 reason 说明原因，调用方要把它显示出来。"""
 
-    subtitle: BilibiliSubtitle | None
+    subtitle: Subtitle | None
     reason: str = ""
 
     @property
@@ -97,8 +98,18 @@ def is_ai_track(track: dict[str, Any]) -> bool:
     return bool(track.get("ai_status")) or language.startswith("ai-") or type_value == 1
 
 
+def language_priority(code: str) -> int:
+    """中简 → 中繁 → 英 → 其它；未列出的排最后。"""
+    normalized = code.strip().lower().replace("_", "-")
+    for group_index, group in enumerate(LANGUAGE_GROUPS):
+        for index, item in enumerate(group):
+            if normalized == item:
+                return group_index * 10 + index
+    return UNLISTED_LANGUAGE_PRIORITY
+
+
 def rank_subtitles(tracks: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """按「中文非 AI → 中文 AI → 非中文非 AI → 非中文 AI」排序，组内再按语言权重。"""
+    """按「中文非 AI → 中文 AI → 非中文非 AI → 非中文 AI」排序，组内再按语言优先顺序。"""
 
     def score(track: dict[str, Any]) -> tuple[int, int, str]:
         language = track_language(track).lower().replace("_", "-")
@@ -107,7 +118,7 @@ def rank_subtitles(tracks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         else:
             group = 3 if is_ai_track(track) else 2
         label = str(track.get("lan_doc") or language)
-        return group, LANGUAGE_PRIORITIES.get(language, UNLISTED_LANGUAGE_PRIORITY), label
+        return group, language_priority(language), label
 
     return sorted([track for track in tracks if track_url(track)], key=score)
 
@@ -137,11 +148,11 @@ def select_part_cid(pages: list[dict[str, Any]], page: int) -> int:
     return int(cid)
 
 
-def parse_subtitle_body(payload: Any) -> tuple[BilibiliSubtitleItem, ...]:
+def parse_subtitle_body(payload: Any) -> tuple[SubtitleItem, ...]:
     """把字幕正文 JSON 转成分段；空正文按失败处理。"""
     if not isinstance(payload, dict) or not isinstance(payload.get("body"), list):
         raise ValueError("字幕正文格式不受支持")
-    items: list[BilibiliSubtitleItem] = []
+    items: list[SubtitleItem] = []
     for raw in payload["body"]:
         if not isinstance(raw, dict):
             continue
@@ -153,7 +164,7 @@ def parse_subtitle_body(payload: Any) -> tuple[BilibiliSubtitleItem, ...]:
             end_ms = max(start_ms, round(float(raw.get("to") or 0) * 1000))
         except (TypeError, ValueError):
             continue
-        items.append(BilibiliSubtitleItem(start_ms=start_ms, end_ms=end_ms, text=text))
+        items.append(SubtitleItem(start_ms=start_ms, end_ms=end_ms, text=text))
     if not items:
         raise ValueError("字幕正文为空")
     return tuple(items)
@@ -180,7 +191,7 @@ def describe_api_error(exc: ResponseCodeException) -> str:
     return f"B站接口返回错误 {code}：{message}"
 
 
-async def _download_body(url: str, *, bvid: str) -> tuple[BilibiliSubtitleItem, ...]:
+async def _download_body(url: str, *, bvid: str) -> tuple[SubtitleItem, ...]:
     media_url = validated_media_url(url)
     headers = {
         "User-Agent": BILIBILI_USER_AGENT,
@@ -245,7 +256,7 @@ async def _fetch_subtitle_async(target: str) -> SubtitleResult:
             continue
         text = "\n".join(item.text for item in items)
         logger.info("B站字幕命中：%s，%d 段", language, len(items))
-        return SubtitleResult(BilibiliSubtitle(text=text, items=items), "")
+        return SubtitleResult(Subtitle(text=text, items=items), "")
 
     return SubtitleResult(None, "；".join(failures) or "没有可下载的字幕正文")
 
