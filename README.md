@@ -6,13 +6,13 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 
 ## 目录组成
 
-- `src/ihatevideos/input/`：多平台输入。B 站（含原生字幕优先）/小宇宙/喜马拉雅/本地文件，统一输出音频路径、元数据、资源编号。
+- `src/ihatevideos/input/`：多平台输入。B 站（含原生字幕优先）/YouTube（字幕、音频或 1080p 以内视频）/小宇宙/喜马拉雅/本地文件，统一输出媒体路径、元数据、资源编号与字幕。
 - `src/ihatevideos/export/`：内容导出。转录 JSON 转原文 Markdown，总结转干净表格与 B 站时间线。
 - `src/ihatevideos/media/`：本地音视频处理。ffprobe 读流信息与时长，ffmpeg 取画面、剪切视频与音频、提取音轨与分块（`ihatevideos-media`）。
 - `src/ihatevideos/download/`：下载。aria2c 直链（多线程分段、断点续传、限速），yt-dlp 视频（格式与字幕清单、合流、抽音频、经 aria2c 加速与失败回退），`setup-binaries` 取回 uv 装不进来的 ffprobe（`ihatevideos-download`）。
 - `src/ihatevideos/stt/`：本地语音转写。Qwen3-ASR-1.7B 出文字，Qwen3-ForcedAligner-0.6B 出字级时间戳，句级结果直接交给 `ihatevideos-export`（`ihatevideos-stt`）。权重放工程根目录 `models/`，不进版本库。
 - `src/ihatevideos/summarize/`：图文笔记。给视频配画面：列模板、把画面取到 Markdown 同级的 `assets/`、把正文里的占位符换成图片引用（`ihatevideos-summarize`）。模板放工程根目录 `templates/`，可以自己加。
-- `src/ihatevideos/doctor/`：运行环境检查。一次查完 Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站 cookies 与登录态、系统代理（`ihatevideos-doctor`）。
+- `src/ihatevideos/doctor/`：运行环境检查。一次查完 Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站与 YouTube 的 cookies 与登录态、系统代理（`ihatevideos-doctor`）。
 - `skills/`：随仓库提交的工程 Skills（`ihatevideos-input`、`ihatevideos-export`、`ihatevideos-media`、`ihatevideos-download`、`ihatevideos-stt`、`ihatevideos-summarize`、`ihatevideos-doctor`）。
 - `.agents/skills/`：通用工具 Skills，只存本地，不提交。
 - `temp/`：中间结果、Cookie 文件，只存本地，不提交。
@@ -22,6 +22,9 @@ Python 工具集合：把视频变成可检索的文字。Python 版本使用 uv
 ```bash
 uv sync
 uv run ihatevideos-input detect "BV1xx411c7mD"
+
+uv run ihatevideos-input ytsub "https://www.youtube.com/watch?v=MuWTmEiNe1g"
+uv run ihatevideos-input cookies --platform youtube
 uv run ihatevideos-export --help
 uv run ihatevideos-media probe "temp/media/<某个视频文件>"
 uv run ihatevideos-stt doctor
@@ -46,17 +49,17 @@ uv run huggingface-cli download Qwen/Qwen3-ForcedAligner-0.6B --local-dir models
 国内网络慢可以把 `huggingface-cli download` 换成 `modelscope download --model <模型名> --local_dir <目录>`。
 下完跑 `uv run ihatevideos-stt doctor`，`ready` 为 `true` 就能用。详细说明见 `skills/ihatevideos-stt/SKILL.md`。
 
-## B 站登录态
+## 登录态（B 站与 YouTube）
 
-B 站字幕接口只对登录态返回：
+B 站字幕接口只对登录态返回；YouTube 的公开视频匿名也能取字幕，会员或限制年龄的视频才需要登录态。
 
-1. 在浏览器登录 B 站，用 Cookie 导出扩展（例如 Get cookies.txt LOCALLY）导出 Netscape 格式。
-2. 把导出的文件复制到 `temp/config/`，文件名随意，程序自己会找（多份时取最近修改的那份）。
-3. 运行 `uv run ihatevideos-input cookies`，`login` 为 `true` 表示可用。
+1. 在浏览器登录对应站点，用 Cookie 导出扩展（例如 Get cookies.txt LOCALLY）导出 Netscape 格式。
+2. 把导出的文件复制到 `temp/config/`，文件名随意，程序按域名与必需字段自己找：B 站看 `SESSDATA`，YouTube 看 `LOGIN_INFO`；多份时取最近修改的那份。
+3. 运行 `uv run ihatevideos-input cookies`（B 站）或 `uv run ihatevideos-input cookies --platform youtube`，`login` 为 `true` 表示可用。
 
 文件只放在工程内，不写用户主目录，删除工程即可清除。cookies 失效时重新导出一份覆盖进去即可。
 
-`cookies` 会用这份文件调一次 B 站登录接口：`login: true` 表示服务端仍认；`false` 时 `detail` 给出原因（没有文件、目录里没有可用的 cookies、B 站返回的错误码、或这份 cookies 已失效）。不要把 SESSDATA 的值贴到聊天里，密钥只留在本地文件。
+`cookies` 会用这份文件调一次对应站点的登录接口：`login: true` 表示服务端仍认；`false` 时 `detail` 给出原因（没有文件、目录里没有含必需字段的 cookies、站点返回的错误码、或这份 cookies 已失效）。不要把 cookie 的值贴到聊天里，密钥只留在本地文件。
 
 
 ## 图文笔记
@@ -76,7 +79,7 @@ B 站字幕接口只对登录态返回：
 
 ## 运行环境检查
 
-`ihatevideos-doctor` 一次把运行环境查一遍：Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站 cookies 与登录态、系统代理。默认跑烟测——用 `lavfi` 现造 1 秒样片，真的走一遍读流、截 jpg、截 png、抽 wav、剪一段，每步检查产物而不看 ffmpeg 的提示文本；CUDA 用一次矩阵乘确认每块卡真的能算。
+`ihatevideos-doctor` 一次把运行环境查一遍：Python 依赖、外部程序、ffmpeg 实际出活能力、GPU 计算、语音识别权重、B 站与 YouTube 的 cookies 与登录态、系统代理。默认跑烟测——用 `lavfi` 现造 1 秒样片，真的走一遍读流、截 jpg、截 png、抽 wav、剪一段，每步检查产物而不看 ffmpeg 的提示文本；CUDA 用一次矩阵乘确认每块卡真的能算。
 
 ```bash
 uv run ihatevideos-doctor

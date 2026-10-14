@@ -62,9 +62,9 @@ uv run ihatevideos-download video <视频页> [<视频页> ...] [--format 编号
 
 ## Agent 判断
 
-- 目标站点是 B 站、小宇宙、喜马拉雅时，走 `ihatevideos-input`，不要用本命令。
+- 目标站点是 B 站、YouTube、小宇宙、喜马拉雅时，取字幕与音频走 `ihatevideos-input`，不要用本命令。需要整段视频（例如要抽帧）时才用本命令的 `video`。
 - 只要音频转文字时用 `video --audio-only`，产物是 mp3。
-- `formats` 返回的 `subtitles` 为空说明这个页面没有可下载的字幕（B 站字幕需要登录态，走 `ihatevideos-input subtitle`）。
+- `formats` 返回的 `subtitles` 为空说明这个页面没有可下载的字幕（B 站字幕需要登录态，走 `ihatevideos-input subtitle`；YouTube 走 `ihatevideos-input ytsub`）。
 - 退出码 3 表示正常跳过，不要当成失败重试。
 - 中断与继续都靠文件断点，不需要保存任务编号。
 

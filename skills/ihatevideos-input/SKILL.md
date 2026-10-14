@@ -1,6 +1,6 @@
 ---
 name: ihatevideos-input
-description: Ingest one video/audio input for the iHateVideos project (Bilibili, Xiaoyuzhou, Ximalaya, or a local audio file) into unified audio + metadata + optional native subtitle. Use this skill whenever the agent needs to accept a video URL or uploaded file before splitting, transcribing, or summarizing — even if the request only says "handle this link" or "process this file". Do NOT reimplement URL detection, BV ID parsing, or per-platform downloaders; always call ihatevideos.input instead.
+description: Ingest one video/audio input for the iHateVideos project (Bilibili, YouTube, Xiaoyuzhou, Ximalaya, or a local audio file) into unified audio + metadata + optional native subtitle. Use this skill whenever the agent needs to accept a video URL or uploaded file before splitting, transcribing, or summarizing — even if the request only says "handle this link" or "process this file". Do NOT reimplement URL detection, BV ID parsing, or per-platform downloaders; always call ihatevideos.input instead.
 ---
 
 # iHateVideos Input (small skill for video拆分)
@@ -12,8 +12,8 @@ only job: turn **one raw input** into a standard `ResolvedInput`.
 ## When to use
 
 - User or orchestrator gives you a video URL (`bilibili.com`, `b23.tv`,
-  `xiaoyuzhoufm.com/episode/...`, `ximalaya.com/sound/...`, `xima.tv/...`)
-  or a bare `BV号`.
+  `youtube.com/watch?v=...`, `youtu.be/...`, `xiaoyuzhoufm.com/episode/...`,
+  `ximalaya.com/sound/...`, `xima.tv/...`) or a bare `BV号`.
 - User or orchestrator gives you a local audio file path.
 - Never for transcription, frame extraction, or summarization itself.
 
@@ -28,14 +28,17 @@ This skill belongs to the `iHateVideos` uv project (sibling of
 
 ## API (use exactly this)
 
-End-to-end Bilibili subtitle flow. The user drops the browser-exported
-`cookies.txt` into `temp/config/`; then two CLI calls, zero Python needed:
+End-to-end subtitle flow. The user drops the browser-exported `cookies.txt`
+into `temp/config/`; then two CLI calls, zero Python needed:
 
 ```bash
-uv run ihatevideos-input cookies
+uv run ihatevideos-input cookies                     # Bilibili, reads SESSDATA
+uv run ihatevideos-input cookies --platform youtube  # YouTube, reads LOGIN_INFO
 # exit 0 -> login: true, proceed. exit 3 -> login: false, read `detail`, ask the user to re-export.
 uv run ihatevideos-input subtitle <bilibili-url> --out-dir temp
 # exit 0 -> session_dir + text_path + items_path ready. exit 3 -> no native subtitle (the reason field says why), go to ASR.
+uv run ihatevideos-input ytsub <youtube-url> --out-dir temp
+# same three artifacts; exit 3 -> no downloadable track, go to ASR.
 uv run ihatevideos-input comments <bilibili-url> --limit 10 --reply-limit 10 --session-dir <session_dir>
 # optional step, Bilibili only. exit 0 -> comments_json + comments_markdown ready.
 # exit 1 -> continue without comments, never block the workflow.
@@ -67,9 +70,10 @@ from ihatevideos.input import resolve_input
 
 result = resolve_input(
     url="https://www.bilibili.com/video/BV1xx411c7mD?p=2",
-    download_dir="./work",      # audio lands here (B站/yutto, 小宇宙, 喜马拉雅)
+    download_dir="./work",      # media lands here (B站/yutto, 小宇宙, 喜马拉雅, YouTube)
     audio_quality="30216",      # B站 only, yutto quality code
-    prefer_bilibili_subtitle=True,  # B站 only: try native subtitle first
+    prefer_bilibili_subtitle=True,  # B站 and YouTube: try the native subtitle first
+    media="audio",              # YouTube only: audio gives mp3, video gives mp4 up to 1080p
 )
 # OR for an uploaded file:
 result = resolve_input(audio_path="uploads/BV1xx411c7mD_title.m4a")
@@ -81,12 +85,14 @@ result = resolve_input(audio_path="uploads/BV1xx411c7mD_title.m4a")
 |---|---|
 | `audio_file` | `Path \| None` — downloaded/copied audio; `None` when B站原生字幕命中 (no download happened) |
 | `metadata` | `VideoMetadata \| None` — `bvid/title/author/pubdate/description/...`; `None` only for local files |
-| `bvid` | stable resource id (`BV...`, `BV..._pN` for 分P, `xiaoyuzhou_<eid>`, `ximalaya_<trackId>`) |
+| `bvid` | stable resource id (`BV...`, `BV..._pN` for 分P, `youtube_<videoId>`, `xiaoyuzhou_<eid>`, `ximalaya_<trackId>`) |
 | `transcription_id` | storage identity (分P kept separate: `BV..._p2`) |
-| `subtitle` | `BilibiliSubtitle(text, items) \| None` — B站 only, with ms timeline; `None` means "go to ASR" |
+| `subtitle` | `Subtitle(text, items) \| None` — B站 and YouTube, with ms timeline; `None` means "go to ASR" |
 | `use_local_audio` | `True` only for uploaded files |
-| `platform` | `Platform.BILIBILI/XIAOYUZHOU/XIMALAYA`, `None` for local files |
-| `subtitle_reason` | why the native subtitle is missing (未登录 / 分P不存在 / 该分P没有字幕轨道 …); empty when `subtitle` is set. Report it instead of silently switching to ASR. |
+| `platform` | `Platform.BILIBILI/YOUTUBE/XIAOYUZHOU/XIMALAYA`, `None` for local files |
+| `subtitle_reason` | why the native subtitle is missing (未登录 / 分P不存在 / 该分P没有字幕轨道 / 这个视频没有可下载的字幕轨道 …); empty when `subtitle` is set. Report it instead of silently switching to ASR. |
+| `subtitle_lang` | language code of the picked subtitle (`zh-CN`, `ai-zh`, …); empty when there is none |
+| `subtitle_source` | `manual` or `auto`; empty when there is none |
 
 Helpers (only when the orchestrator asks for inspection, not downloading):
 
@@ -97,11 +103,15 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
 - `fetch_bilibili_subtitle(target) -> SubtitleResult` — `.subtitle` holds text
   + ms timeline, `.reason` explains a miss (always report it); each 分P uses
   its own cid, tracks are ranked manual-Chinese → AI-Chinese → others
+- `fetch_youtube_subtitle(url, tracks=..., out_dir=..., output_base=..., proxy=...)`
+  — picks one track (manual before auto, then 简 → 繁 → 英 → 其它), downloads
+  that single language, and parses json3 or vtt into the same `SubtitleItem`
 - `build_transcription_artifact_name(name, resource_id)`
-- `find_cookies_file() -> Path | None`, `verify_login() -> (bool, str)` —
-  the newest usable `cookies.txt` under `temp/config/`, and one live check
-  against the Bilibili login API; `credential_status()` reports the local
-  state only (`missing` / `empty` / `ok`)
+- `find_cookies_file(platform) -> Path | None`, `verify_login(platform) -> (bool, str)`
+  — the newest usable `cookies.txt` under `temp/config/` for that platform
+  (Bilibili reads `SESSDATA`, YouTube reads `LOGIN_INFO`), plus one live check;
+  `credential_status(platform)` reports the local state only (`missing` /
+  `empty` / `ok`). Both default to Bilibili.
 
 ## Rules (why they exist)
 
@@ -141,6 +151,13 @@ Helpers (only when the orchestrator asks for inspection, not downloading):
    (title/author/pubdate/description) lands beside the subtitle files
    whenever metadata succeeds.
 
+9. **YouTube: subtitle first, then media.** `ytsub` (or `resolve`) picks one
+   track: manual before auto, then 简 → 繁 → 英 → 其它. When a subtitle hits,
+   no media is downloaded at all. When nothing hits, `--media audio` (default)
+   gives an mp3 for ASR, `--media video` gives an mp4 up to 1080p that serves
+   both ASR and frame extraction. YouTube cookies are optional: only
+   members-only or age-gated videos need them.
+
 ## Output back to the orchestrator
 
 Always return these three, nothing more:
@@ -165,14 +182,15 @@ uv run ihatevideos-input detect "BV1xx411c7mD"
 ## CLI (same module, no Agent needed)
 
 ```bash
-uv run ihatevideos-input detect <url>          # offline: bilibili/xiaoyuzhou/ximalaya?
+uv run ihatevideos-input detect <url>          # offline: bilibili/youtube/xiaoyuzhou/ximalaya?
 uv run ihatevideos-input ids <bilibili-input>  # offline: bvid/page/target_id/normalized
 uv run ihatevideos-input ximalaya <url>        # offline for direct sound links
 uv run ihatevideos-input resolve --url <url> --download-dir ./work        # may download
+uv run ihatevideos-input resolve --url <youtube-url> --media video        # YouTube: fetch the mp4 for frames
 uv run ihatevideos-input resolve --audio-path uploads/BV1xx411c7mD_x.m4a  # local, offline
-uv run ihatevideos-input cookies  # check temp/config/ cookies against the Bilibili login API
+uv run ihatevideos-input cookies [--platform youtube]  # check temp/config/ cookies against the platform login API
 uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text + items files; exit 3 prints reason
-```
+uv run ihatevideos-input ytsub <youtube-url> --out-dir <dir>      # same artifacts for YouTube
 
 `resolve` prints the Skill contract as JSON
 (`audio_path/has_native_subtitle/resource_id/...`). Exit codes: `0` ok,
@@ -184,3 +202,5 @@ uv run ihatevideos-input subtitle <bilibili-url> --out-dir <dir>  # write text +
 2. "把这个 B站链接接进来：`https://www.bilibili.com/video/BV1xx411c7mD?p=2`，告诉我有没有原生字幕、音频在哪、resource_id 是什么。"
 3. "用户传了一个文件 `uploads/BV1xx411c7mD_访谈.m4a`，按本地输入走，不要联网。"
 4. "这个能接吗：`https://www.ximalaya.com/album/12345`？不能的话说明原因并索要单集链接。"
+5. "把这个 YouTube 链接接进来：`https://www.youtube.com/watch?v=MuWTmEiNe1g`，有没有字幕、音频在哪、resource_id 是什么。"
+6. "这个 YouTube 视频没有字幕，先转写，再按教学笔记模板写笔记并配图。"
