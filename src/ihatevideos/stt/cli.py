@@ -104,7 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     transcribe_parser.add_argument("input", help="本地音视频路径，视频会先抽成 16 kHz 单声道 wav")
     transcribe_parser.add_argument("--language", default=DEFAULT_LANGUAGE, help="语言提示，默认 Chinese")
     transcribe_parser.add_argument(
-        "--gpu", type=int, default=DEFAULT_GPU_INDEX, help="只使用第 N 块 GPU，默认第 1 块"
+        "--gpu", type=int, default=DEFAULT_GPU_INDEX, help="只使用第 N 块 GPU，默认第 0 块"
     )
     transcribe_parser.add_argument(
         "--device", default=DEFAULT_DEVICE, help="torch 设备名；写进 CUDA_VISIBLE_DEVICES 之后索引重新编号"

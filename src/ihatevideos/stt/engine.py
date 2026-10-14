@@ -13,8 +13,8 @@ DEFAULT_LANGUAGE = "Chinese"
 DEFAULT_MAX_NEW_TOKENS = 8192
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_DEVICE = "cuda:0"
-# 本机有两块卡，转写默认用第 1 块，把第 0 块留给别的任务
-DEFAULT_GPU_INDEX = 1
+# 本机有两块卡，转写默认用第 0 块（RTX 4080 SUPER，显存 32 GB）
+DEFAULT_GPU_INDEX = 0
 _MODEL_MARKERS = ("config.json", "preprocessor_config.json")
 
 
@@ -83,8 +83,8 @@ def load_asr_model(
 
     if device.startswith("cuda") and not torch.cuda.is_available():
         raise SttError(
-            "没有可用的 CUDA 设备。只有一块显卡的机器请加 --gpu 0，"
-            "显卡被别的任务占满时换一块空闲的。"
+            "没有可用的 CUDA 设备。检查显卡驱动与 CUDA 版本是否装好，"
+            "默认那块被占用时用 --gpu N 换一块空闲的。"
         )
     from qwen_asr import Qwen3ASRModel
 

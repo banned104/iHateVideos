@@ -42,7 +42,7 @@ uv run ihatevideos-stt transcribe <input> [--language Chinese] [--gpu N] [--devi
 输入可以是视频（`mp4`、`mkv`）或音频（`mp3`、`m4a`、`wav`），程序自己抽成 16 kHz 单声道 wav，
 不需要先跑 `ihatevideos-media audio`。已经抽好的 wav 也一样能直接喂进来。
 
-`--gpu N` 用来限定只使用第 N 块显卡，机器上有多块卡、别的任务正在占用其中一块时必须写。
+`--gpu N` 用来限定只使用第 N 块显卡，默认用第 0 块（RTX 4080 SUPER，显存 32 GB）。默认那块被别的任务占用时写 `--gpu N` 换一块。
 设了之后 CUDA 设备索引会重新编号，输出里的 `device` 会是 `cuda:0`，真实是哪块卡看 `device_name`。
 `--reuse` 复用已经抽好的 `audio.wav`，重跑时省掉抽音频的时间。
 
@@ -71,7 +71,7 @@ uv run ihatevideos-stt transcribe <input> [--language Chinese] [--gpu N] [--devi
   "aligner_dir": "时间戳模型目录，--no-timestamps 时为 null",
   "language": "Chinese",
   "device": "cuda:0",
-  "device_name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+  "device_name": "NVIDIA GeForce RTX 4080 SUPER",
   "duration_seconds": 1211.15,
   "audio_seconds": 0.812,
   "load_seconds": 41.782,
@@ -139,7 +139,7 @@ uv run ihatevideos-export json2md temp/stt/<主干名>/export.json
 |---|---|
 | 还没跑过转写 | 先跑 `doctor`，`ready` 为 `false` 就停下，把缺的东西报给用户 |
 | `doctor` 退出码 `3` | 环境或权重不齐，不要接着跑 `transcribe` |
-| 机器上有别的任务占着显卡 | 默认就用第 1 块卡；要换一块用 `--gpu N`，只有一块卡时写 `--gpu 0` |
+| 机器上有别的任务占着显卡 | 默认就用第 0 块卡（RTX 4080 SUPER）；默认那块被占用时用 `--gpu N` 换一块 |
 | 视频很长 | 直接跑，程序不切分音频，整段交给模型；耗时按「转写耗时」那一行的比例估 |
 | 想重跑同一个文件 | 加 `--reuse`，抽音频那一步会跳过 |
 | 只要文本不要时间戳 | `--no-timestamps`，不加载时间戳模型，快一些 |
@@ -170,6 +170,6 @@ uv run ihatevideos-export json2md temp/stt/<主干名>/export.json
 
 ## Test prompts for this skill
 
-1. "把 `temp/media/某个视频.mp4` 转成文字，要每句话的时间，用第 1 块显卡。"
+1. "把 `temp/media/某个视频.mp4` 转成文字，要每句话的时间，用第 0 块显卡。"
 2. "转写好的结果在哪？下一步怎么变成 Markdown？"
 3. "我想确认这台机器能不能跑语音识别，先检查一下环境。"
