@@ -31,6 +31,8 @@ LOGIN_TIMEOUT_SECONDS = 30.0
 # 与 input.cookies 的 COOKIES_EXPORT_HINT 是同一句话；doctor 不能在导入期读 input
 COOKIES_HINT = "用 Chrome 插件「Get cookies.txt LOCALLY」导出一份 cookies.txt 放进 temp/config/"
 YOUTUBE_URL = "https://www.youtube.com/"
+# YouTube 的公开视频不需要登录态，这份 cookies 只服务会员或限制年龄的视频
+YOUTUBE_COOKIES_HINT = "只有会员或限制年龄的视频才需要登录态，公开视频匿名可用"
 # ihatevideos.download 与 ihatevideos.input 的 __init__ 会在导入期拉起全部子模块，
 # 先把它们需要的第三方包查清楚，缺了就不导入，doctor 才能在环境残缺时照常给出报告
 DOWNLOAD_REQUIREMENTS = ("aria2c", "imageio_ffmpeg", "aria2p", "requests", "httpx")
@@ -414,8 +416,8 @@ def check_youtube(*, timeout: float = LOGIN_TIMEOUT_SECONDS) -> list[Check]:
                 "cookies 文件",
                 MISSING,
                 f"{status['dir']} 里没有 cookies 文件",
-                INPUT_BLOCKS,
-                COOKIES_HINT,
+                (),
+                YOUTUBE_COOKIES_HINT,
             )
         )
     elif state == "empty":
@@ -425,8 +427,8 @@ def check_youtube(*, timeout: float = LOGIN_TIMEOUT_SECONDS) -> list[Check]:
                 "cookies 文件",
                 MISSING,
                 f"{status['dir']} 里的文件都没有 {status['cookie_name']}：{', '.join(status['files'])}",
-                INPUT_BLOCKS,
-                COOKIES_HINT,
+                (),
+                YOUTUBE_COOKIES_HINT,
             )
         )
     else:
