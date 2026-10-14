@@ -109,6 +109,7 @@ class Platform(Enum):
     BILIBILI = "bilibili"
     XIAOYUZHOU = "xiaoyuzhou"
     XIMALAYA = "ximalaya"
+    YOUTUBE = "youtube"
 
 
 @dataclass(frozen=True)

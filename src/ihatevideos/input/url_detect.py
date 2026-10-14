@@ -1,7 +1,7 @@
 # Ported from bilibili2text b2t/download/url_detect.py
 
 import re
-from urllib.parse import SplitResult, urlsplit
+from urllib.parse import SplitResult, parse_qs, urlsplit
 
 from .platform import Platform
 
@@ -19,6 +19,20 @@ BILIBILI_SHORT_HOSTS = frozenset({"b23.tv", "www.b23.tv"})
 XIAOYUZHOU_HOSTS = frozenset({"xiaoyuzhoufm.com", "www.xiaoyuzhoufm.com"})
 XIMALAYA_HOSTS = frozenset({"ximalaya.com", "www.ximalaya.com", "m.ximalaya.com"})
 XIMALAYA_SHORT_HOSTS = frozenset({"xima.tv", "www.xima.tv"})
+
+YOUTUBE_HOSTS = frozenset(
+    {
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "www.youtube-nocookie.com",
+    }
+)
+YOUTUBE_SHORT_HOSTS = frozenset({"youtu.be", "www.youtu.be"})
+_YOUTUBE_ID = r"[A-Za-z0-9_-]{11}"
+_YOUTUBE_VIDEO_PATH = re.compile(rf"^/(?:shorts|live|embed|v)/({_YOUTUBE_ID})(?:/|$)")
 
 
 def parse_http_url(raw: str) -> SplitResult | None:
@@ -54,6 +68,28 @@ def _is_bilibili_host(hostname: str) -> bool:
     )
 
 
+def _is_youtube_host(hostname: str) -> bool:
+    return hostname in YOUTUBE_HOSTS or hostname in YOUTUBE_SHORT_HOSTS
+
+
+def _youtube_video_id(parsed: SplitResult) -> str | None:
+    """取 11 位视频 ID；频道页、首页、纯播放列表页取不到。"""
+    hostname = (parsed.hostname or "").lower()
+    if hostname in YOUTUBE_SHORT_HOSTS:
+        match = re.fullmatch(rf"/({_YOUTUBE_ID})/?", parsed.path)
+        return match.group(1) if match else None
+    if hostname not in YOUTUBE_HOSTS:
+        return None
+    match = _YOUTUBE_VIDEO_PATH.match(parsed.path)
+    if match:
+        return match.group(1)
+    if parsed.path == "/watch":
+        for value in parse_qs(parsed.query).get("v") or []:
+            if re.fullmatch(_YOUTUBE_ID, value):
+                return value
+    return None
+
+
 def detect_platform(url: str) -> Platform | None:
     """Detect which platform a URL belongs to, or None if unknown."""
     url_clean = url.strip()
@@ -76,6 +112,8 @@ def detect_platform(url: str) -> Platform | None:
         return Platform.XIMALAYA
     if hostname in XIMALAYA_SHORT_HOSTS and _XIMA_TV_PATH.match(parsed.path):
         return Platform.XIMALAYA
+    if _is_youtube_host(hostname) and _youtube_video_id(parsed) is not None:
+        return Platform.YOUTUBE
 
     return None
 
@@ -120,5 +158,10 @@ def extract_platform_id(url: str, platform: Platform) -> str | None:
         if hostname in XIMALAYA_SHORT_HOSTS:
             match = _XIMA_TV_PATH.match(parsed.path)
             return match.group(1) if match else None
+
+    if platform == Platform.YOUTUBE:
+        if not _is_youtube_host(hostname):
+            return None
+        return _youtube_video_id(parsed)
 
     return None
